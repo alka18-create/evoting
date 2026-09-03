@@ -1,0 +1,15 @@
+.git
+.vscode
+.idea
+node_modules
+vendor
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+public/build
+.env
+.env.*
+.DS_Store
+*docker-compose*.yml
+*.tar.gz

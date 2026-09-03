@@ -1,0 +1,174 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Domain\Auditing\Services\AuditLogger;
+use App\Enums\UserRole;
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+
+class UserController extends Controller
+{
+    public function index()
+    {
+        $this->ensureSuperAdmin();
+
+        $users = User::latest()->paginate(20);
+        return view('admin.users.index', compact('users'));
+    }
+
+    public function create()
+    {
+        $this->ensureSuperAdmin();
+
+        $roles = [
+            UserRole::SuperAdmin->value => UserRole::SuperAdmin->label(),
+            UserRole::Admin->value => UserRole::Admin->label(),
+            UserRole::Operator->value => UserRole::Operator->label(),
+        ];
+
+        return view('admin.users.create', compact('roles'));
+    }
+
+    public function store(Request $request)
+    {
+        $this->ensureSuperAdmin();
+
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:255', 'unique:users'],
+            'email' => ['required', 'email', 'max:255', 'unique:users'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'role' => ['required', 'in:SUPER_ADMIN,ADMIN,OPERATOR'],
+        ]);
+
+        $user = User::create([
+            'name' => $request->input('name'),
+            'username' => $request->input('username'),
+            'email' => $request->input('email'),
+            'password' => $request->input('password'),
+            'role' => $request->input('role'),
+            'is_active' => true,
+        ]);
+
+        AuditLogger::log(
+            action: 'USER_CREATED',
+            resourceType: 'User',
+            resourceId: $user->id,
+            metadata: [
+                'user_name' => $user->name,
+                'user_role' => $user->role->value,
+            ]
+        );
+
+        return redirect()->route('admin.users.index')
+            ->with('success', "Pengguna \"{$user->name}\" berhasil dibuat.");
+    }
+
+    public function edit(User $user)
+    {
+        $this->ensureSuperAdmin();
+
+        $roles = [
+            UserRole::SuperAdmin->value => UserRole::SuperAdmin->label(),
+            UserRole::Admin->value => UserRole::Admin->label(),
+            UserRole::Operator->value => UserRole::Operator->label(),
+        ];
+
+        return view('admin.users.edit', compact('user', 'roles'));
+    }
+
+    public function update(Request $request, User $user)
+    {
+        $this->ensureSuperAdmin();
+
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:255', 'unique:users,username,' . $user->id],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'role' => ['required', 'in:SUPER_ADMIN,ADMIN,OPERATOR'],
+        ]);
+
+        $data = $request->only('name', 'username', 'email', 'role');
+
+        if ($request->filled('password')) {
+            $data['password'] = $request->input('password');
+        }
+
+        $user->update($data);
+
+        AuditLogger::log(
+            action: 'USER_UPDATED',
+            resourceType: 'User',
+            resourceId: $user->id,
+            metadata: [
+                'user_name' => $user->name,
+                'user_role' => $user->role->value,
+                'fields' => array_keys($request->only('name', 'username', 'email', 'role')),
+            ]
+        );
+
+        return redirect()->route('admin.users.index')
+            ->with('success', "Pengguna \"{$user->name}\" berhasil diperbarui.");
+    }
+
+    public function destroy(User $user)
+    {
+        $this->ensureSuperAdmin();
+
+        if ($user->id === auth()->id()) {
+            return back()->withErrors(['error' => 'Tidak dapat menghapus akun sendiri.']);
+        }
+
+        $userName = $user->name;
+
+        $user->delete();
+
+        AuditLogger::log(
+            action: 'USER_DELETED',
+            resourceType: 'User',
+            resourceId: null,
+            metadata: ['user_name' => $userName]
+        );
+
+        return redirect()->route('admin.users.index')
+            ->with('success', "Pengguna \"{$userName}\" berhasil dihapus.");
+    }
+
+    public function toggleActive(User $user)
+    {
+        $this->ensureSuperAdmin();
+
+        if ($user->id === auth()->id()) {
+            return back()->withErrors(['error' => 'Tidak dapat menonaktifkan akun sendiri.']);
+        }
+
+        $user->update(['is_active' => ! $user->is_active]);
+
+        $action = $user->is_active ? 'USER_ACTIVATED' : 'USER_DEACTIVATED';
+
+        AuditLogger::log(
+            action: $action,
+            resourceType: 'User',
+            resourceId: $user->id,
+            metadata: [
+                'user_name' => $user->name,
+                'user_role' => $user->role->value,
+                'is_active' => $user->is_active,
+            ]
+        );
+
+        $status = $user->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        return back()->with('success', "Akun \"{$user->name}\" berhasil {$status}.");
+    }
+
+    private function ensureSuperAdmin(): void
+    {
+        if (! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Hanya Super Admin yang dapat mengelola pengguna.');
+        }
+    }
+}

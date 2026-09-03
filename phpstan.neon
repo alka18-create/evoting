@@ -1,0 +1,17 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/nesbot/carbon/extension.neon
+
+parameters:
+    level: 8
+    paths:
+        - app
+
+    tmpDir: /tmp/phpstan
+
+    treatPhpDocTypesAsCertain: true
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+
+    tipsOfTheDay: false
+    reportUnmatchedIgnoredErrors: false
