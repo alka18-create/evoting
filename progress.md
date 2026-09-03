@@ -243,3 +243,14 @@ composer.json (tambah packages)
 | MFA setup | `/admin/profile/mfa` |
 | MFA challenge | `/mfa/challenge` |
 
+## Snapshot Progres — 4 Sep 2026 (sore)
+
+- **Git**: repo diinisialisasi (`main`), commit `c455e49` — "P0-P3 hardening: token hash, QR v2, MFA, audit, suite 91 passed" (393 file, tree bersih). Ter-ignore: `.env`, `vendor/`, `node_modules/`, backup SQL, log, foto upload.
+- **Ringkasan kerja hari ini**:
+  - P0: token hash HMAC + entropy 8 char + expiry, error login generik, Gates backup/hasil/scan, backup anti-traversal + Postgres + SuperAdmin-only.
+  - P1: QR v2 opaque, security headers/CSP, rate-limit ganda, unique index + retry, audit tanpa IP ballot + `audit:prune`, PHP 8.2 + secrets.
+  - P2: wizard N+1, enum hasil, QR vendor lokal + SRI, sanitasi Excel/upload/import, kunci kandidat, Reverb private channel.
+  - P3: MFA TOTP, alert anomali dashboard, risiko residual di README, checklist hari-H, E2E print bulk.
+- **Suite: 91 passed (301 assertions)** — termasuk perbaikan `TokenSystemTest`, pengetatan `ElectionPolicy` (Operator view-only), dan route kembali print-bulk legacy.
+- **Langkah berikut**: uji manual browser (login voter, scan QR v1/v2 di HP, enrol MFA, `npm run build`), lalu uji lapangan.
+
