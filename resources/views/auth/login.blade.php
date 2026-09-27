@@ -42,12 +42,12 @@
                 <div class="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-sky-500/10 rounded-full blur-3xl animate-[float_12s_ease-in-out_infinite_4s]"></div>
             </div>
 
-            <div class="relative z-10 flex flex-col justify-center px-16 text-white h-full">
+            <div class="relative z-10 flex flex-col justify-center px-16 py-10 text-white h-full overflow-y-auto">
                 <div class="mb-10 animate-fade-in">
                     <div class="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-8 border border-white/20 shadow-lg shadow-cyan-500/10">
                         <i data-lucide="shield-check" class="w-8 h-8 text-cyan-300"></i>
                     </div>
-                    <h1 class="text-5xl font-extrabold mb-4 tracking-tight leading-tight">
+                    <h1 class="text-4xl font-extrabold mb-3 tracking-tight leading-tight">
                         E-Voting Sekolah
                     </h1>
                     <p class="text-cyan-100/80 text-lg max-w-md leading-relaxed">
@@ -55,32 +55,45 @@
                     </p>
                 </div>
 
-                <div class="space-y-5 mt-4 animate-fade-in" style="animation-delay: 0.1s;">
-                    <div class="flex items-center gap-5 bg-white/5 backdrop-blur-sm rounded-2xl p-5 border border-white/10 hover:bg-white/10 transition-colors">
-                        <div class="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <i data-lucide="lock" class="w-6 h-6 text-emerald-300"></i>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-base">Keamanan Terjamin</p>
-                            <p class="text-cyan-100/70 text-sm">Enkripsi end-to-end untuk setiap suara</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-5 bg-white/5 backdrop-blur-sm rounded-2xl p-5 border border-white/10 hover:bg-white/10 transition-colors">
-                        <div class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <i data-lucide="eye" class="w-6 h-6 text-blue-300"></i>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-base">Transparansi Penuh</p>
-                            <p class="text-cyan-100/70 text-sm">Audit log real-time untuk semua aktivitas</p>
+                <!-- Visual: ilustrasi perangkat + emblem keamanan -->
+                <div class="my-6 animate-fade-in" style="animation-delay: 0.05s;">
+                    <div class="relative max-w-md">
+                        <img src="{{ asset('images/login-devices.webp') }}"
+                             alt="Ilustrasi laptop hasil voting, smartphone token, dan emblem keamanan E-Voting"
+                             class="w-full rounded-3xl border border-white/20 shadow-2xl shadow-black/40"
+                             loading="eager" fetchpriority="high">
+                        <div class="absolute -bottom-4 left-6 flex items-center gap-2 rounded-full bg-emerald-500/90 px-4 py-2 text-xs font-bold text-white shadow-lg">
+                            <i data-lucide="shield-check" class="w-4 h-4"></i> Aman &amp; Terenkripsi
                         </div>
                     </div>
-                    <div class="flex items-center gap-5 bg-white/5 backdrop-blur-sm rounded-2xl p-5 border border-white/10 hover:bg-white/10 transition-colors">
-                        <div class="w-12 h-12 bg-cyan-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <i data-lucide="zap" class="w-6 h-6 text-cyan-300"></i>
+                </div>
+
+                <div class="space-y-4 mt-2 animate-fade-in" style="animation-delay: 0.1s;">
+                    <div class="flex items-center gap-4 bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
+                        <div class="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="lock" class="w-5 h-5 text-emerald-300"></i>
                         </div>
                         <div>
-                            <p class="font-semibold text-base">Hasil Real-time</p>
-                            <p class="text-cyan-100/70 text-sm">Pantau partisipasi dan hasil secara langsung</p>
+                            <p class="font-semibold text-sm">Keamanan Terjamin</p>
+                            <p class="text-cyan-100/70 text-xs">Enkripsi end-to-end untuk setiap suara</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
+                        <div class="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="eye" class="w-5 h-5 text-blue-300"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-sm">Transparansi Penuh</p>
+                            <p class="text-cyan-100/70 text-xs">Audit log real-time untuk semua aktivitas</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
+                        <div class="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="zap" class="w-5 h-5 text-cyan-300"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-sm">Hasil Real-time</p>
+                            <p class="text-cyan-100/70 text-xs">Pantau partisipasi dan hasil secara langsung</p>
                         </div>
                     </div>
                 </div>
