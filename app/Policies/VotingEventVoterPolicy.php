@@ -27,4 +27,13 @@ class VotingEventVoterPolicy
     {
         return in_array($user->role, [UserRole::SuperAdmin, UserRole::Admin, UserRole::Operator], true);
     }
+
+    /**
+     * Kelola kartu PDF (unduh/hapus) — kemampuan terpisah dari delete
+     * karena targetnya file, bukan VotingEventVoter.
+     */
+    public function manageCards(User $user): bool
+    {
+        return in_array($user->role, [UserRole::SuperAdmin, UserRole::Admin, UserRole::Operator], true);
+    }
 }

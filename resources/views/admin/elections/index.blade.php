@@ -11,9 +11,12 @@
             </a>
         </div>
         <form method="GET" class="bg-white rounded-2xl shadow-sm border p-4 flex gap-3 flex-wrap">
-            <select name="voting_event_id" class="px-3 py-2 border rounded-xl text-sm bg-gray-50"><option value="">Semua Event</option>@foreach($votingEvents as $ev)<option value="{{ $ev->id }}" @selected(request('voting_event_id')==$ev->id)>{{ $ev->name }}</option>@endforeach</select>
-            <select name="organization_id" class="px-3 py-2 border rounded-xl text-sm bg-gray-50"><option value="">Semua Organisasi</option>@foreach($organizations as $org)<option value="{{ $org->id }}" @selected(request('organization_id')==$org->id)>{{ $org->name }}</option>@endforeach</select>
-            <input type="text" name="q" value="{{ request('q') }}" placeholder="Cari nama..." class="px-3 py-2 border rounded-xl text-sm bg-gray-50">
+            <label for="f-event" class="sr-only">Filter event</label>
+            <select id="f-event" name="voting_event_id" class="px-3 py-2 border rounded-xl text-sm bg-gray-50"><option value="">Semua Event</option>@foreach($votingEvents as $ev)<option value="{{ $ev->id }}" @selected(request('voting_event_id')==$ev->id)>{{ $ev->name }}</option>@endforeach</select>
+            <label for="f-org" class="sr-only">Filter organisasi</label>
+            <select id="f-org" name="organization_id" class="px-3 py-2 border rounded-xl text-sm bg-gray-50"><option value="">Semua Organisasi</option>@foreach($organizations as $org)<option value="{{ $org->id }}" @selected(request('organization_id')==$org->id)>{{ $org->name }}</option>@endforeach</select>
+            <label for="f-q" class="sr-only">Cari pemilihan</label>
+            <input id="f-q" type="text" name="q" value="{{ request('q') }}" placeholder="Cari nama..." class="px-3 py-2 border rounded-xl text-sm bg-gray-50">
             <button class="bg-primary-600 text-white px-4 py-2 rounded-xl text-sm">Filter</button>
             <a href="{{ route('admin.elections.index') }}" class="px-4 py-2 border rounded-xl text-sm hover:bg-gray-50">Reset</a>
         </form>
@@ -32,7 +35,7 @@
 
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full">
+            <table class="min-w-full min-w-[760px]">
                 <thead class="bg-gray-50/50">
                     <tr>
                         <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama</th>
@@ -89,7 +92,7 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4">
-                                <div class="flex items-center gap-1">
+                                <div class="flex items-center gap-1 flex-wrap whitespace-nowrap">
                                     @if ($election->status->value === 'DRAFT')
                                         <form method="POST" action="{{ route('admin.elections.schedule', $election) }}">
                                             @csrf
@@ -160,5 +163,4 @@
         {{ $elections->links() }}
     </div>
 
-    <script>lucide.createIcons();</script>
 </x-layouts.admin>

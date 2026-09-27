@@ -226,6 +226,9 @@
                         <td style="text-align: center;">{{ $result['candidate_number'] }}</td>
                         <td>
                             {{ $result['candidate_name'] }}
+                            @if (!empty($result['running_mate_name']))
+                                <br><small>Bersama {{ $result['running_mate_name'] }}</small>
+                            @endif
                             @if ($index === 0)
                                 <span class="winner-badge">PEMENANG</span>
                             @endif

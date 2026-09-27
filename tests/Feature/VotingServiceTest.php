@@ -25,13 +25,13 @@ describe('VotingService — castVote()', function () {
             'election_id' => $election->id,
             'voter_id' => $voter->id,
             'status' => 'ELIGIBLE',
-            'token' => '123456',
         ]);
 
         $ballot = $this->votingService->castVote(
             electionId: $election->id,
             candidateId: $candidate->id,
             eligibilityId: $eligibility->id,
+            voterId: $voter->id,
             ipAddress: '127.0.0.1',
             userAgent: 'TestAgent',
         );
@@ -73,6 +73,7 @@ describe('VotingService — castVote()', function () {
             electionId: $election->id,
             candidateId: $candidate->id,
             eligibilityId: $eligibility->id,
+            voterId: $voter->id,
         );
     });
 
@@ -93,6 +94,7 @@ describe('VotingService — castVote()', function () {
             electionId: $election->id,
             candidateId: $candidate->id,
             eligibilityId: $eligibility->id,
+            voterId: $voter->id,
         );
     });
 
@@ -113,6 +115,7 @@ describe('VotingService — castVote()', function () {
             electionId: $election->id,
             candidateId: $candidate->id,
             eligibilityId: $eligibility->id,
+            voterId: $voter->id,
         );
     });
 
@@ -133,6 +136,7 @@ describe('VotingService — castVote()', function () {
             electionId: $election->id,
             candidateId: $candidate->id,
             eligibilityId: $eligibility->id,
+            voterId: $voter->id,
         );
     });
 
@@ -154,6 +158,7 @@ describe('VotingService — castVote()', function () {
             electionId: $election->id,
             candidateId: $wrongCandidate->id,
             eligibilityId: $eligibility->id,
+            voterId: $voter->id,
         );
     });
 
@@ -174,6 +179,7 @@ describe('VotingService — castVote()', function () {
             electionId: $election->id,
             candidateId: $candidate->id,
             eligibilityId: $eligibility->id,
+            voterId: $voter->id,
         );
     });
 
@@ -191,6 +197,7 @@ describe('VotingService — castVote()', function () {
             electionId: $election->id,
             candidateId: $candidate->id,
             eligibilityId: $eligibility->id,
+            voterId: $voter->id,
         );
 
         $this->assertNotEmpty($ballot->ballot_hash);
@@ -211,11 +218,54 @@ describe('VotingService — castVote()', function () {
             electionId: $election->id,
             candidateId: $candidate->id,
             eligibilityId: $eligibility->id,
+            voterId: $voter->id,
         );
 
         $this->assertDatabaseMissing('ballots', [
             'id' => $ballot->id,
             'election_id' => $voter->id,
         ]);
+    });
+
+    it('menolak jika eligibility milik voter lain (P0-C1)', function () {
+        $election = Election::factory()->open()->create();
+        $candidate = Candidate::factory()->forElection($election, 1)->create();
+        $voterA = Voter::factory()->create();
+        $voterB = Voter::factory()->create();
+        $eligibilityB = VoterEligibility::factory()->create([
+            'election_id' => $election->id,
+            'voter_id' => $voterB->id,
+            'status' => 'ELIGIBLE',
+        ]);
+
+        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+
+        $this->votingService->castVote(
+            electionId: $election->id,
+            candidateId: $candidate->id,
+            eligibilityId: $eligibilityB->id,
+            voterId: $voterA->id,
+        );
+    });
+
+    it('menolak jika voter dinonaktifkan (P0-C2)', function () {
+        $election = Election::factory()->open()->create();
+        $candidate = Candidate::factory()->forElection($election, 1)->create();
+        $voter = Voter::factory()->inactive()->create();
+        $eligibility = VoterEligibility::factory()->create([
+            'election_id' => $election->id,
+            'voter_id' => $voter->id,
+            'status' => 'ELIGIBLE',
+        ]);
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('dinonaktifkan');
+
+        $this->votingService->castVote(
+            electionId: $election->id,
+            candidateId: $candidate->id,
+            eligibilityId: $eligibility->id,
+            voterId: $voter->id,
+        );
     });
 });

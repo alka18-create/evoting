@@ -15,10 +15,26 @@ class Candidate extends Model
         'election_id',
         'candidate_number',
         'name',
+        'running_mate_name',
         'photo_path',
+        'running_mate_photo_path',
         'vision',
         'mission',
     ];
+
+    /** Kandidat berpasangan (ada wakil). */
+    public function isPair(): bool
+    {
+        return filled($this->running_mate_name);
+    }
+
+    /** Nama untuk ditampilkan di hasil/ekspor: "Ketua - Wakil". */
+    public function display_name(): string
+    {
+        return $this->isPair()
+            ? $this->name . ' - ' . $this->running_mate_name
+            : $this->name;
+    }
 
     public function election(): BelongsTo
     {

@@ -16,5 +16,4 @@
         </table>
         <div class="p-4">{{ $events->links() }}</div>
     </div>
-    <script>lucide.createIcons();</script>
 </x-layouts.admin>

@@ -133,5 +133,4 @@
         {{ $users->links() }}
     </div>
 
-    <script>lucide.createIcons();</script>
 </x-layouts.admin>

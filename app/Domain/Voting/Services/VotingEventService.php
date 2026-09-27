@@ -9,7 +9,6 @@ use App\Models\VotingEvent;
 use App\Models\VotingEventVoter;
 use App\Support\VotingToken;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 
 class VotingEventService
@@ -36,19 +35,18 @@ class VotingEventService
         DB::transaction(function () use ($voters, $event, $electionIds, &$eventVotersCreated, &$eligibilitiesCreated) {
             foreach ($voters as $voter) {
                 $evv = VotingEventVoter::firstOrCreate(
-                    ['voting_event_id' => $event->id, 'voter_id' => $voter->id],
-                    ['token' => null]
+                    ['voting_event_id' => $event->id, 'voter_id' => $voter->id]
                 );
                 if ($evv->wasRecentlyCreated) {
                     $eventVotersCreated++;
                 }
 
                 foreach ($electionIds as $electionId) {
-                    $elig = VoterEligibility::firstOrCreate(
-                        ['election_id' => $electionId, 'voter_id' => $voter->id],
-                        ['status' => 'ELIGIBLE']
+                    $elig = VoterEligibility::firstOrNew(
+                        ['election_id' => $electionId, 'voter_id' => $voter->id]
                     );
-                    if ($elig->wasRecentlyCreated) {
+                    if (! $elig->exists) {
+                        $elig->forceFill(['status' => 'ELIGIBLE'])->save();
                         $eligibilitiesCreated++;
                     }
                 }
@@ -67,7 +65,7 @@ class VotingEventService
 
     /**
      * Generate token kuat per event untuk semua VotingEventVoter yang belum punya token.
-     * Disimpan sebagai hash (token_hash) + ciphertext (token_enc) + expiry.
+     * Hash-only: disimpan sebagai token_hash + expiry saja.
      * Plain hanya dikembalikan sekali via $issued (jangan di-log).
      *
      * @return Collection<int, array{student_id: string, name: string, class_name: string, token: string}>
@@ -97,12 +95,10 @@ class VotingEventService
                 [$plain, $hash] = VotingToken::generateUnique($existingHashes);
 
                 try {
-                    $evv->update([
-                        'token' => null, // jangan simpan plaintext (P0-01)
+                    $evv->forceFill([
                         'token_hash' => $hash,
-                        'token_enc' => Crypt::encryptString($plain),
                         'expires_at' => $event->ends_at,
-                    ]);
+                    ])->save();
                     $stored = ['plain' => $plain, 'hash' => $hash];
                     break;
                 } catch (\Illuminate\Database\QueryException $e) {
@@ -136,6 +132,49 @@ class VotingEventService
     }
 
     /**
+     * Rotasi token hash-only: timpa hash lama dengan hash baru.
+     * Plain baru dikembalikan sekali — caller wajib tampilkan via flash,
+     * tidak disimpan di DB.
+     */
+    public function rotateToken(VotingEvent $event, VotingEventVoter $evv): string
+    {
+        $existingHashes = VotingEventVoter::where('voting_event_id', $event->id)
+            ->whereNotNull('token_hash')
+            ->pluck('token_hash')
+            ->flip()
+            ->toArray();
+
+        unset($existingHashes[$evv->token_hash]);
+
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            [$plain, $hash] = VotingToken::generateUnique($existingHashes);
+
+            try {
+                $evv->forceFill([
+                    'token_hash' => $hash,
+                    'expires_at' => $event->ends_at,
+                ])->save();
+
+                AuditLogger::log(
+                    action: 'VOTING_EVENT_TOKEN_ROTATED',
+                    resourceType: 'VotingEventVoter',
+                    resourceId: $evv->id,
+                    metadata: ['voting_event_id' => $event->id, 'voter_id' => $evv->voter_id]
+                );
+
+                return $plain;
+            } catch (\Illuminate\Database\QueryException $e) {
+                if (($e->errorInfo[0] ?? null) !== '23505') {
+                    throw $e;
+                }
+                unset($existingHashes[$hash]);
+            }
+        }
+
+        throw new \RuntimeException('Gagal merotasi token setelah 10 percobaan.');
+    }
+
+    /**
      * Generate token untuk voter spesifik (dipakai issue manual).
      */
     public function generateTokenForVoters(VotingEvent $event, array $voterIds): Collection
@@ -143,8 +182,7 @@ class VotingEventService
         // Pastikan voter ter-assign dulu
         foreach ($voterIds as $voterId) {
             VotingEventVoter::firstOrCreate(
-                ['voting_event_id' => $event->id, 'voter_id' => $voterId],
-                ['token' => null, 'token_hash' => null]
+                ['voting_event_id' => $event->id, 'voter_id' => $voterId]
             );
         }
 
@@ -152,10 +190,12 @@ class VotingEventService
         $event->loadMissing('elections');
         foreach ($voterIds as $voterId) {
             foreach ($event->elections as $election) {
-                VoterEligibility::firstOrCreate(
-                    ['election_id' => $election->id, 'voter_id' => $voterId],
-                    ['status' => 'ELIGIBLE']
+                $elig = VoterEligibility::firstOrNew(
+                    ['election_id' => $election->id, 'voter_id' => $voterId]
                 );
+                if (! $elig->exists) {
+                    $elig->forceFill(['status' => 'ELIGIBLE'])->save();
+                }
             }
         }
 
@@ -178,12 +218,10 @@ class VotingEventService
                 [$plain, $hash] = VotingToken::generateUnique($existingHashes);
 
                 try {
-                    $evv->update([
-                        'token' => null,
+                    $evv->forceFill([
                         'token_hash' => $hash,
-                        'token_enc' => Crypt::encryptString($plain),
                         'expires_at' => $event->ends_at,
-                    ]);
+                    ])->save();
                     $stored = $plain;
                     break;
                 } catch (\Illuminate\Database\QueryException $e) {
@@ -217,39 +255,24 @@ class VotingEventService
     }
 
     /**
-     * Resolve VotingEventVoter dari token plain (dual-read transisi).
-     * Prioritas token_hash, fallback token plain lama + auto-upgrade ke hash.
+     * Resolve VotingEventVoter dari token plain via hash HMAC.
+     * P0: hash-only — tidak ada lagi fallback plaintext.
      */
     public static function resolveByToken(int $votingEventId, int $voterId, string $plainToken): ?VotingEventVoter
     {
-        $hash = VotingToken::hash($plainToken);
-
-        $evv = VotingEventVoter::where('voting_event_id', $votingEventId)
+        $query = fn (string $hash) => VotingEventVoter::where('voting_event_id', $votingEventId)
             ->where('voter_id', $voterId)
             ->where('token_hash', $hash)
             ->first();
 
-        if ($evv) {
-            return $evv;
+        // Utama: token ternormalisasi (trim + uppercase).
+        $eventVoter = $query(VotingToken::hash($plainToken));
+
+        // Fallback legacy: hash mentah (token lama bisa tersimpan tanpa normalisasi).
+        if (! $eventVoter && $plainToken !== VotingToken::normalize($plainToken)) {
+            $eventVoter = $query(VotingToken::hashRaw($plainToken));
         }
 
-        // Fallback transisi: cocokkan plain lama, lalu upgrade ke hash+enc.
-        // TODO: hapus fallback setelah kolom `token` di-drop.
-        $legacy = VotingEventVoter::where('voting_event_id', $votingEventId)
-            ->where('voter_id', $voterId)
-            ->where('token', $plainToken)
-            ->first();
-
-        if ($legacy && $legacy->token_hash === null) {
-            $legacy->update([
-                'token_hash' => $hash,
-                'token_enc' => Crypt::encryptString($plainToken),
-                'token' => null,
-            ]);
-
-            return $legacy->refresh();
-        }
-
-        return $legacy;
+        return $eventVoter;
     }
 }

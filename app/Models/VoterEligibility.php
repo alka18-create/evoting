@@ -11,21 +11,18 @@ class VoterEligibility extends Model
     /** @use HasFactory<\Database\Factories\VoterEligibilityFactory> */
     use HasFactory;
 
+    /**
+     * Mass assignment minimal: hanya kunci relasi.
+     * status/token_hash/expires_at/voted_at wajib via forceFill() internal
+     * agar request user tak bisa mengatur status/token.
+     */
     protected $fillable = [
         'election_id',
         'voter_id',
-        'status',
-        'token',
-        'token_hash',
-        'token_enc',
-        'expires_at',
-        'voted_at',
     ];
 
     protected $hidden = [
-        'token',
         'token_hash',
-        'token_enc',
     ];
 
     protected $casts = [
@@ -50,7 +47,7 @@ class VoterEligibility extends Model
 
     public function hasToken(): bool
     {
-        return ! is_null($this->token_hash) || ! is_null($this->token);
+        return ! is_null($this->token_hash);
     }
 
     public function isExpired(): bool
@@ -58,17 +55,12 @@ class VoterEligibility extends Model
         return $this->expires_at !== null && $this->expires_at->isPast();
     }
 
+    /**
+     * Hash-only: token tidak dapat dipulihkan dari DB.
+     * Selalu null — gunakan rotasi token baru.
+     */
     public function plainToken(): ?string
     {
-        if ($this->token_enc) {
-            try {
-                return \Illuminate\Support\Facades\Crypt::decryptString($this->token_enc);
-            } catch (\Throwable) {
-                return null;
-            }
-        }
-
-        // Fallback transisi: izinkan baca plain lama sampai rotasi selesai.
-        return $this->token;
+        return null;
     }
 }

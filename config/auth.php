@@ -119,4 +119,20 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Lockout Progresif Login Voter (P1-03)
+    |--------------------------------------------------------------------------
+    | Melengkapi throttle per-menit di middleware: bila kegagalan login dari
+    | IP yang sama untuk NIS yang sama mencapai max_attempts dalam
+    | decay_minutes terakhir, login diblokir sementara (429) + audit
+    | VOTER_LOGIN_LOCKED. Gagal sukses tidak dihitung, sehingga 1 kelas
+    | (40 siswa) yang login bergantian dari 1 IP NAT tidak terblokir.
+    */
+
+    'voter_lockout' => [
+        'max_attempts' => (int) env('VOTER_LOCKOUT_MAX_ATTEMPTS', 10),
+        'decay_minutes' => (int) env('VOTER_LOCKOUT_DECAY_MINUTES', 15),
+    ],
+
 ];

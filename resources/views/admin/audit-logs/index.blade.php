@@ -17,13 +17,13 @@
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
         <form method="GET" action="{{ route('admin.audit-logs.index') }}" class="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Cari</label>
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari aksi, resource..."
+                <label for="al-search" class="block text-xs font-medium text-gray-500 mb-1">Cari</label>
+                <input id="al-search" type="text" name="search" value="{{ request('search') }}" placeholder="Cari aksi, resource..."
                     class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500">
             </div>
             <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Aksi</label>
-                <select name="action" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500">
+                <label for="al-action" class="block text-xs font-medium text-gray-500 mb-1">Aksi</label>
+                <select id="al-action" name="action" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500">
                     <option value="">Semua</option>
                     @foreach ($actions as $action)
                         <option value="{{ $action }}" {{ request('action') === $action ? 'selected' : '' }}>{{ $action }}</option>
@@ -31,8 +31,8 @@
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Resource</label>
-                <select name="resource_type" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500">
+                <label for="al-resource" class="block text-xs font-medium text-gray-500 mb-1">Resource</label>
+                <select id="al-resource" name="resource_type" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500">
                     <option value="">Semua</option>
                     @foreach ($resourceTypes as $type)
                         <option value="{{ $type }}" {{ request('resource_type') === $type ? 'selected' : '' }}>{{ $type }}</option>
@@ -40,16 +40,16 @@
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Dari</label>
-                <input type="date" name="from" value="{{ request('from') }}"
+                <label for="al-from" class="block text-xs font-medium text-gray-500 mb-1">Dari</label>
+                <input id="al-from" type="date" name="from" value="{{ request('from') }}"
                     class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500">
             </div>
             <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Sampai</label>
+                <label for="al-to" class="block text-xs font-medium text-gray-500 mb-1">Sampai</label>
                 <div class="flex gap-2">
-                    <input type="date" name="to" value="{{ request('to') }}"
+                    <input id="al-to" type="date" name="to" value="{{ request('to') }}"
                         class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500">
-                    <button type="submit" class="px-3 py-2 bg-primary-600 text-white text-sm font-semibold rounded-lg hover:bg-primary-700 transition-colors">
+                    <button type="submit" aria-label="Terapkan filter" class="px-3 py-2 bg-primary-600 text-white text-sm font-semibold rounded-lg hover:bg-primary-700 transition-colors">
                         <i data-lucide="search" class="w-4 h-4"></i>
                     </button>
                 </div>
@@ -135,5 +135,4 @@
 
     <div class="mt-4">{{ $logs->links() }}</div>
 
-    <script>lucide.createIcons();</script>
 </x-layouts.admin>

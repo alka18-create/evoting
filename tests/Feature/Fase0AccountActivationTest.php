@@ -35,8 +35,8 @@ describe('Fase 0 — Verifikasi akun pasif tidak dapat login', function () {
             'password' => 'password',
         ])->assertSessionHasErrors('login');
 
-        // Aktifkan akun
-        $user->update(['is_active' => true]);
+        // Aktifkan akun (is_active bukan fillable — wajib forceFill)
+        $user->forceFill(['is_active' => true])->save();
 
         // Login harus berhasil
         $this->post('/login', [
@@ -57,8 +57,8 @@ describe('Fase 0 — Verifikasi akun pasif tidak dapat login', function () {
         // Akses admin dashboard harus berhasil
         $this->get(route('admin.dashboard'))->assertOk();
 
-        // Nonaktifkan akun
-        $user->update(['is_active' => false]);
+        // Nonaktifkan akun (is_active bukan fillable — wajib forceFill)
+        $user->forceFill(['is_active' => false])->save();
 
         // Akses admin dashboard harus ditolak (redirect ke login)
         $this->get(route('admin.dashboard'))

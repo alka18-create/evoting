@@ -10,6 +10,9 @@
                         </span>
                         <div>
                             <h3 class="font-semibold text-gray-800">{{ $candidate->name }}</h3>
+                            @if ($candidate->isPair())
+                                <p class="text-xs text-gray-500">Bersama {{ $candidate->running_mate_name }}</p>
+                            @endif
                             <p class="text-xs text-gray-500">{{ $election->name }}</p>
                         </div>
                     </div>
@@ -36,6 +39,25 @@
                     </div>
                 @endif
 
+                <!-- Pasangan -->
+                @if ($candidate->isPair())
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Pasangan</label>
+                        <div class="p-4 bg-gray-50 rounded-xl flex items-center gap-4">
+                            @if ($candidate->running_mate_photo_path)
+                                <div class="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                    <img src="{{ Storage::url($candidate->running_mate_photo_path) }}" alt="{{ $candidate->running_mate_name }}"
+                                        class="w-full h-full object-cover">
+                                </div>
+                            @endif
+                            <div>
+                                <p class="text-sm font-semibold text-gray-800">{{ $candidate->name }} &amp; {{ $candidate->running_mate_name }}</p>
+                                <p class="text-xs text-gray-500 mt-0.5">Calon nomor {{ $candidate->candidate_number }} berpasangan</p>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 <!-- Visi -->
                 @if ($candidate->vision)
                     <div>
@@ -56,7 +78,7 @@
                     </div>
                 @endif
 
-                @if (!$candidate->vision && !$candidate->mission && !$candidate->photo_path)
+                @if (!$candidate->vision && !$candidate->mission && !$candidate->photo_path && !$candidate->isPair())
                     <div class="text-center py-8">
                         <i data-lucide="file-text" class="w-12 h-12 text-gray-300 mx-auto mb-3"></i>
                         <p class="text-gray-500 text-sm">Belum ada detail untuk kandidat ini.</p>
@@ -74,5 +96,4 @@
         </div>
     </div>
 
-    <script>lucide.createIcons();</script>
 </x-layouts.admin>

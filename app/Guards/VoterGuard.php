@@ -2,7 +2,6 @@
 
 namespace App\Guards;
 
-use App\Models\Voter;
 use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Http\Request;

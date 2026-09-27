@@ -71,5 +71,4 @@
         </div>
     </div>
 
-    <script>lucide.createIcons();</script>
 </x-layouts.admin>

@@ -62,8 +62,9 @@ describe('Token Management — Admin TokenController', function () {
 
         $this->assertTrue($eligibility->hasToken());
         $this->assertNotNull($eligibility->token_hash);
-        // Plain tidak lagi disimpan di DB (P0-01)
-        $this->assertNull($eligibility->token);
+        // Hash-only: tidak ada salinan reversible di DB.
+        $this->assertNull($eligibility->plainToken());
+        $this->assertArrayNotHasKey('token_enc', $eligibility->getAttributes());
 
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'TOKEN_ISSUED',
@@ -99,12 +100,13 @@ describe('Token Management — Admin TokenController', function () {
         $election = Election::factory()->open()->create();
         $voter = Voter::factory()->create();
 
+        // Factory default sudah membawa token hash+enc.
         $existing = VoterEligibility::factory()->create([
             'election_id' => $election->id,
             'voter_id' => $voter->id,
             'status' => 'ELIGIBLE',
-            'token' => '999999',
         ]);
+        $hashBefore = $existing->token_hash;
 
         $this->actingAs($admin);
 
@@ -113,7 +115,9 @@ describe('Token Management — Admin TokenController', function () {
         ]);
 
         $existing->refresh();
-        $this->assertEquals('999999', $existing->token);
+        // Token lama tidak tertimpa, tidak ada token baru di session.
+        $this->assertEquals($hashBefore, $existing->token_hash);
+        $response->assertSessionMissing('issued_tokens');
     });
 
     it('admin dapat menghapus token (jika belum vote)', function () {
@@ -125,7 +129,6 @@ describe('Token Management — Admin TokenController', function () {
             'election_id' => $election->id,
             'voter_id' => $voter->id,
             'status' => 'ELIGIBLE',
-            'token' => '123456',
         ]);
 
         $this->actingAs($admin);
@@ -153,7 +156,6 @@ describe('Token Management — Admin TokenController', function () {
         $eligibility = VoterEligibility::factory()->voted()->create([
             'election_id' => $election->id,
             'voter_id' => $voter->id,
-            'token' => '123456',
         ]);
 
         $this->actingAs($admin);
@@ -168,7 +170,7 @@ describe('Token Management — Admin TokenController', function () {
         ]);
     });
 
-    it('admin dapat melihat halaman print card', function () {
+    it('hash-only: print card dialihkan ke rotasi (tidak ada plaintext di DB)', function () {
         $admin = User::factory()->admin()->create(['is_active' => true]);
         $election = Election::factory()->open()->create();
         $voter = Voter::factory()->create();
@@ -177,7 +179,6 @@ describe('Token Management — Admin TokenController', function () {
             'election_id' => $election->id,
             'voter_id' => $voter->id,
             'status' => 'ELIGIBLE',
-            'token' => '123456',
         ]);
 
         $eligibility = VoterEligibility::where('election_id', $election->id)
@@ -187,7 +188,31 @@ describe('Token Management — Admin TokenController', function () {
         $this->actingAs($admin);
 
         $response = $this->get(route('admin.elections.tokens.print-card', [$election, $eligibility]));
-        $response->assertOk();
+        $response->assertRedirect();
+        $response->assertSessionHasErrors('error');
+    });
+
+    it('rotasi token menghasilkan plain sekali + hash baru', function () {
+        $admin = User::factory()->admin()->create(['is_active' => true]);
+        $election = Election::factory()->open()->create();
+        $voter = Voter::factory()->create();
+
+        $eligibility = VoterEligibility::factory()->create([
+            'election_id' => $election->id,
+            'voter_id' => $voter->id,
+            'status' => 'ELIGIBLE',
+        ]);
+        $oldHash = $eligibility->token_hash;
+
+        $this->actingAs($admin);
+
+        $response = $this->post(route('admin.elections.tokens.reissue', [$election, $eligibility]));
+        $response->assertRedirect();
+        $response->assertSessionHas('issued_tokens');
+
+        $eligibility->refresh();
+        $this->assertNotEquals($oldHash, $eligibility->token_hash);
+        $this->assertNull($eligibility->plainToken());
     });
 
     it('admin dapat melihat halaman print cards bulk', function () {
@@ -218,14 +243,16 @@ describe('Voter Login — Token Authentication (wizard event)', function () {
     if (! function_exists('issueEventTokenForTest')) {
         function issueEventTokenForTest(VotingEvent $event, Voter $voter, string $plain, ?string $expiresAt = null): VotingEventVoter
         {
-            return VotingEventVoter::create([
+            $evv = new VotingEventVoter([
                 'voting_event_id' => $event->id,
                 'voter_id' => $voter->id,
-                'token' => null,
-                'token_hash' => VotingToken::hash($plain),
-                'token_enc' => encrypt($plain),
-                'expires_at' => $expiresAt ?? now()->addDay(),
             ]);
+            $evv->forceFill([
+                'token_hash' => VotingToken::hash($plain),
+                'expires_at' => $expiresAt ?? now()->addDay(),
+            ])->save();
+
+            return $evv;
         }
     }
 
@@ -311,8 +338,6 @@ describe('Voter Login — Token Authentication (wizard event)', function () {
         VotingEventVoter::create([
             'voting_event_id' => $this->event->id,
             'voter_id' => $voter->id,
-            'token' => null,
-            'token_hash' => null,
         ]);
 
         $response = $this->post(route('vote.login.submit'), [
@@ -386,6 +411,60 @@ describe('Voter Login — Token Authentication (wizard event)', function () {
         // Logout
         $response = $this->post(route('vote.logout'));
         $response->assertRedirect('/vote/login');
+        $this->assertGuest('voter');
+    });
+
+    it('P1-03: lockout progresif setelah 10 gagal (redirect + audit)', function () {
+        $voter = Voter::factory()->create(['student_id' => '2024001', 'is_active' => true]);
+        issueEventTokenForTest($this->event, $voter, 'ABCDEFGH');
+
+        foreach (range(1, 10) as $i) {
+            \App\Models\AuditLog::create([
+                'action' => 'VOTER_LOGIN_FAILED',
+                'resource_type' => 'VotingEventVoter',
+                'resource_id' => 0,
+                'metadata' => ['voting_event_id' => $this->event->id, 'student_id' => '2024001', 'reason' => 'bad_token'],
+                'ip_address' => '127.0.0.1',
+                'created_at' => now(),
+            ]);
+        }
+
+        // Kredensial benar pun ditolak selama lockout (redirect 302 +
+        // pesan lockout; Laravel selalu redirect 302 untuk ValidationException).
+        $response = $this->post(route('vote.login.submit'), [
+            'student_id' => '2024001',
+            'token' => 'ABCDEFGH',
+            'voting_event_id' => $this->event->id,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHasErrors('student_id');
+        $this->assertGuest('voter');
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'VOTER_LOGIN_LOCKED',
+        ]);
+    });
+
+    it('P1-02: sesi voter kedaluwarsa setelah 30 menit idle', function () {
+        $voter = Voter::factory()->create(['student_id' => '2024001', 'is_active' => true]);
+        issueEventTokenForTest($this->event, $voter, 'ABCDEFGH');
+
+        $this->post(route('vote.login.submit'), [
+            'student_id' => '2024001',
+            'token' => 'ABCDEFGH',
+            'voting_event_id' => $this->event->id,
+        ]);
+        $this->assertAuthenticatedAs($voter, 'voter');
+
+        // Sesi hidup: event tanpa election → kembali ke step 1 (bukan login).
+        $this->get(route('vote.wizard.step', ['step' => 1]))
+            ->assertRedirect(route('vote.wizard.step', ['step' => 1]));
+        $this->assertAuthenticated('voter');
+
+        // Lewat batas idle 30 menit → ditendang ke login.
+        $this->travel(31)->minutes();
+        $response = $this->get(route('vote.wizard.step', ['step' => 1]));
+        $response->assertRedirect(route('vote.login'));
         $this->assertGuest('voter');
     });
 });

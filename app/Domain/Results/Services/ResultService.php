@@ -12,7 +12,7 @@ class ResultService
     /**
      * Hitung hasil voting hanya untuk election CLOSED/ARCHIVED.
      *
-     * @return array{total_votes: int, total_eligible: int, total_voted: int, turnout: float, winner: ?array, results: array<int, array{candidate_id: int, candidate_name: string, candidate_number: int, candidate_photo: ?string, vote_count: int, percentage: float}>}
+     * @return array{total_votes: int, total_eligible: int, total_voted: int, turnout: float, winner: ?array, results: array<int, array{candidate_id: int, candidate_name: string, candidate_number: int, candidate_photo: ?string, running_mate_name: ?string, vote_count: int, percentage: float}>}
      */
     public function tally(Election $election): array
     {
@@ -43,6 +43,7 @@ class ResultService
                     'candidate_name' => $candidate->name,
                     'candidate_number' => $candidate->candidate_number,
                     'candidate_photo' => $candidate->photo_path,
+                    'running_mate_name' => $candidate->running_mate_name,
                     'vote_count' => $item->vote_count,
                     'percentage' => $totalVotes > 0 ? round(($item->vote_count / $totalVotes) * 100, 2) : 0,
                 ];

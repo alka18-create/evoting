@@ -7,7 +7,6 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -44,14 +43,15 @@ class UserController extends Controller
             'role' => ['required', 'in:SUPER_ADMIN,ADMIN,OPERATOR'],
         ]);
 
-        $user = User::create([
+        $user = new User;
+        $user->forceFill([
             'name' => $request->input('name'),
             'username' => $request->input('username'),
             'email' => $request->input('email'),
             'password' => $request->input('password'),
             'role' => $request->input('role'),
             'is_active' => true,
-        ]);
+        ])->save();
 
         AuditLogger::log(
             action: 'USER_CREATED',
@@ -98,7 +98,7 @@ class UserController extends Controller
             $data['password'] = $request->input('password');
         }
 
-        $user->update($data);
+        $user->forceFill($data)->save();
 
         AuditLogger::log(
             action: 'USER_UPDATED',
@@ -146,7 +146,7 @@ class UserController extends Controller
             return back()->withErrors(['error' => 'Tidak dapat menonaktifkan akun sendiri.']);
         }
 
-        $user->update(['is_active' => ! $user->is_active]);
+        $user->forceFill(['is_active' => ! $user->is_active])->save();
 
         $action = $user->is_active ? 'USER_ACTIVATED' : 'USER_DEACTIVATED';
 

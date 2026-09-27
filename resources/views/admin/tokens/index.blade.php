@@ -1,12 +1,12 @@
 <x-layouts.admin title="Token - {{ $election->name }}">
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
             <p class="text-sm text-gray-500">Kelola token pemilihan untuk {{ $election->name }}</p>
         </div>
-        <div class="flex items-center gap-2">
-            <a href="{{ route('admin.elections.tokens.print-bulk', $election) }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
-                <i data-lucide="printer" class="w-4 h-4"></i>
-                Cetak Semua Kartu
+        <div class="flex items-center gap-2 flex-wrap">
+            <a href="{{ route('admin.elections.tokens.print-bulk', $election) }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
+                <i data-lucide="file-text" class="w-4 h-4"></i>
+                Cetak Kartu
             </a>
             <a href="{{ route('admin.elections.index') }}" class="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
                 <i data-lucide="arrow-left" class="w-4 h-4"></i>
@@ -14,6 +14,12 @@
             </a>
         </div>
     </div>
+
+    @if ($errors->any())
+        <div class="mb-4 bg-red-50 border border-red-200 rounded-2xl px-5 py-4 text-sm text-red-700">
+            @foreach ($errors->all() as $error)<p>{{ $error }}</p>@endforeach
+        </div>
+    @endif
 
     @if (session('issued_tokens'))
         <div class="mb-4 bg-emerald-50 border border-emerald-200 rounded-2xl p-6">
@@ -35,6 +41,57 @@
                     </div>
                 @endforeach
             </div>
+        </div>
+    @endif
+
+    @if (session('saved_card_pdf'))
+        <div class="mb-4 bg-teal-50 border-2 border-teal-200 rounded-2xl px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <i data-lucide="file-check-2" class="w-5 h-5 text-teal-600"></i>
+                <div>
+                    <p class="text-sm font-semibold text-teal-800">PDF kartu berhasil disimpan</p>
+                    <p class="text-xs text-teal-600">{{ session('saved_card_pdf') }} — tersimpan di penyimpanan privat, bisa diunduh ulang.</p>
+                </div>
+            </div>
+            <a href="{{ route('admin.elections.tokens.card-pdf.download', [$election, session('saved_card_pdf')]) }}"
+                class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-teal-600 rounded-xl hover:bg-teal-700 transition-all">
+                <i data-lucide="download" class="w-4 h-4"></i> Unduh PDF Kartu
+            </a>
+        </div>
+    @endif
+
+    @if (!empty($savedPdfs))
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
+            <div class="flex items-center justify-between gap-3 mb-4">
+                <div>
+                    <h3 class="font-semibold text-gray-800">PDF Kartu Tersimpan</h3>
+                    <p class="text-xs text-gray-500">Salinan kartu berisi token — simpan sampai pemilihan selesai, lalu hapus.</p>
+                </div>
+                <i data-lucide="files" class="w-5 h-5 text-gray-400"></i>
+            </div>
+            <ul class="divide-y divide-gray-100">
+                @foreach ($savedPdfs as $pdf)
+                    <li class="py-3 flex flex-wrap items-center justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-sm font-medium text-gray-700 truncate">{{ $pdf['file'] }}</p>
+                            <p class="text-xs text-gray-400">{{ number_format($pdf['size'] / 1024, 1) }} KB &middot; {{ \Illuminate\Support\Carbon::createFromTimestamp($pdf['modified'])->format('d/m/Y H:i') }}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('admin.elections.tokens.card-pdf.download', [$election, $pdf['file']]) }}"
+                                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-teal-700 bg-teal-50 rounded-lg hover:bg-teal-100 ring-1 ring-teal-600/20">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i> Unduh
+                            </a>
+                            <form method="POST" action="{{ route('admin.elections.tokens.card-pdf.destroy', [$election, $pdf['file']]) }}" class="inline" onsubmit="return confirm('Hapus PDF ini? Kartu berisi token tidak akan bisa diunduh lagi.')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 ring-1 ring-red-600/20">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
         </div>
     @endif
 
@@ -68,7 +125,7 @@
             <h3 class="font-semibold text-gray-800">Token Diterbitkan ({{ $eligibilities->total() }})</h3>
         </div>
         <div class="overflow-x-auto">
-            <table class="min-w-full">
+            <table class="min-w-full min-w-[720px]">
                 <thead class="bg-gray-50/50">
                     <tr>
                         <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Voter</th>
@@ -88,7 +145,7 @@
                             </td>
                             <td class="px-6 py-4">
                                 @if ($eligibility->hasToken())
-                                    <span class="inline-flex items-center px-3 py-1.5 bg-emerald-50 rounded-lg text-xs font-semibold text-emerald-700 ring-1 ring-emerald-600/20">● Diterbitkan{{ $eligibility->expires_at ? ' · exp '.$eligibility->expires_at->format('d/m/Y') : '' }}</span>
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ring-1 ring-inset bg-emerald-50 text-emerald-700 ring-emerald-600/20"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Diterbitkan{{ $eligibility->expires_at ? ' · exp '.$eligibility->expires_at->format('d/m/Y') : '' }}</span>
                                 @else
                                     <span class="text-xs text-gray-400">Belum diterbitkan</span>
                                 @endif
@@ -111,9 +168,12 @@
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-2">
                                     @if ($eligibility->hasToken() && ! $eligibility->hasVoted())
-                                        <a href="{{ route('admin.elections.tokens.print-card', [$election, $eligibility]) }}" target="_blank" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors ring-1 ring-blue-600/20">
-                                            <i data-lucide="printer" class="w-3.5 h-3.5"></i> Cetak
-                                        </a>
+                                        <form method="POST" action="{{ route('admin.elections.tokens.reissue', [$election, $eligibility]) }}" class="inline" onsubmit="return confirm('Rotasi token? Token lama tidak berlaku, token baru tampil sekali.')">
+                                            @csrf
+                                            <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors ring-1 ring-amber-600/20">
+                                                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Rotasi
+                                            </button>
+                                        </form>
                                         <form method="POST" action="{{ route('admin.elections.tokens.destroy', [$election, $eligibility]) }}" class="inline" onsubmit="return confirm('Yakin menghapus token ini?')">
                                             @csrf
                                             @method('DELETE')
@@ -142,5 +202,4 @@
 
     <div class="mt-4">{{ $eligibilities->links() }}</div>
 
-    <script>lucide.createIcons();</script>
 </x-layouts.admin>

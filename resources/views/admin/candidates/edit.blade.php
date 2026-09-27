@@ -38,6 +38,40 @@
                     </div>
                 </div>
 
+                <div class="border border-dashed border-gray-200 rounded-xl p-4 space-y-4">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="users" class="w-4 h-4 text-gray-400"></i>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pasangan (opsional)</p>
+                        <span class="text-xs text-gray-400">— kosongkan nama wakil untuk kandidat tunggal</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 items-start">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Nama Wakil Pasangan</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                    <i data-lucide="user-round" class="w-[18px] h-[18px] text-gray-400"></i>
+                                </div>
+                                <input type="text" name="running_mate_name" id="running_mate_name" value="{{ old('running_mate_name', $candidate->running_mate_name) }}"
+                                    class="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
+                                    placeholder="Nama wakil">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Foto Wakil Baru <span class="text-gray-400 font-normal">(opsional, maks 2MB)</span></label>
+                            <input type="file" name="running_mate_photo" id="running_mate_photo" accept="image/*"
+                                class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all">
+                            @if ($candidate->running_mate_photo_path)
+                                <div class="mt-3 flex items-center gap-3">
+                                    <div class="w-14 h-14 rounded-lg overflow-hidden bg-gray-100">
+                                        <img src="{{ Storage::url($candidate->running_mate_photo_path) }}" alt="{{ $candidate->running_mate_name }}" class="w-full h-full object-cover">
+                                    </div>
+                                    <p class="text-xs text-gray-500">Foto wakil saat ini</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Visi <span class="text-gray-400 font-normal">(opsional)</span></label>
                     <textarea name="vision" id="vision" rows="3"
@@ -77,5 +111,4 @@
         </div>
     </div>
 
-    <script>lucide.createIcons();</script>
 </x-layouts.admin>

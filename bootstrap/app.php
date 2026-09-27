@@ -20,12 +20,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
             'permission' => \App\Http\Middleware\EnsureUserHasPermission::class,
             'mfa' => \App\Http\Middleware\EnsureMfaVerified::class,
+            'voter.timeout' => \App\Http\Middleware\VoterSessionTimeout::class,
         ]);
 
         // P1-02: headers keamanan untuk semua response web.
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
-
-        $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

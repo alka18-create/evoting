@@ -254,3 +254,20 @@ composer.json (tambah packages)
 - **Suite: 91 passed (301 assertions)** — termasuk perbaikan `TokenSystemTest`, pengetatan `ElectionPolicy` (Operator view-only), dan route kembali print-bulk legacy.
 - **Langkah berikut**: uji manual browser (login voter, scan QR v1/v2 di HP, enrol MFA, `npm run build`), lalu uji lapangan.
 
+## P0 Lanjutan (audit) — 9 Sep 2026
+
+- **C1**: `castVote()` wajib `voterId` + filter eligibility; controller legacy cek kepemilikan.
+- **C2**: `VoterUserProvider` hanya voter aktif; kedua service tolak voter nonaktif.
+- **`VotingGate` baru**: aturan event/election terpusat, dipakai login + voting + wizard.
+- **Wizard**: re-validasi token/expiry/is_active/event per-request.
+- **`audit:prune` terjadwal harian**; migrasi `000021` drop kolom `token` plaintext + hapus fallback; test regresi C1/C2.
+
+## P1 Lanjutan (audit) — 9 Sep 2026
+
+- Verifikasi: P1-01 (QR v2 opaque), headers/CSP, rate-limit ganda, retry+unique index, audit tanpa IP ballot, PHP 8.2 + CI audit — sudah ada di kode.
+- **Baru**:
+  - P1-03 lockout progresif: ≥10 gagal/IP+NIS dalam 15 mnt → 429 + audit `VOTER_LOGIN_LOCKED` (`VoterLoginController`, `config/auth.php`, env `VOTER_LOCKOUT_*`).
+  - P1-02 idle-timeout sesi voter 30 mnt: middleware `voter.timeout` di grup vote (`config/session.php`, env `VOTER_SESSION_LIFETIME`).
+  - Test: lockout 429 + timeout 31 mnt di `TokenSystemTest`.
+- **Belum dijalankan di sini** (tanpa PHP): `composer lint`, `composer analyse`, `composer test`.
+

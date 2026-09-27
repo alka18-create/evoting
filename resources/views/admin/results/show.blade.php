@@ -1,14 +1,14 @@
 <x-layouts.admin title="Hasil: {{ $election->name }}">
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-6">
         <div>
             <p class="text-sm text-gray-500">{{ $election->description ?? 'Detail hasil pemilihan' }}</p>
-            <div class="flex gap-2 mt-2">
+            <div class="flex gap-2 mt-2 flex-wrap">
                 @if($election->votingEvent)<span class="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-lg border">Event: {{ $election->votingEvent->name }}</span>@endif
                 @if($election->organization)<span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg border">Organisasi: {{ $election->organization->name }}</span>@endif
                 <span class="text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded-lg border">Status: {{ $election->status->label() }}</span>
             </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
             <a href="{{ route('admin.results.export-excel', $election) }}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-emerald-600 border border-emerald-600 rounded-xl hover:bg-emerald-700 transition-all">
                 <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
                 Export Excel
@@ -87,6 +87,9 @@
                         <span class="text-amber-600">No. {{ $results['winner']['candidate_number'] }}</span>
                         &mdash; {{ $results['winner']['candidate_name'] }}
                     </p>
+                    @if (!empty($results['winner']['running_mate_name']))
+                        <p class="text-sm font-medium text-cyan-700">Bersama {{ $results['winner']['running_mate_name'] }}</p>
+                    @endif
                     <p class="text-sm text-gray-600 mt-1">
                         {{ $results['winner']['vote_count'] }} suara ({{ $results['winner']['percentage'] }}%)
                     </p>
@@ -133,6 +136,9 @@
                                     @endif
                                     <div>
                                         <p class="font-semibold text-gray-800">{{ $result['candidate_name'] }}</p>
+                                        @if (!empty($result['running_mate_name']))
+                                            <p class="text-xs font-medium text-cyan-700">Bersama {{ $result['running_mate_name'] }}</p>
+                                        @endif
                                         <p class="text-xs text-gray-500">No. {{ $result['candidate_number'] }}</p>
                                     </div>
                                 </div>
@@ -153,9 +159,13 @@
         </div>
     </div>
 
+    {{-- Chart.js dimuat dari bundle Vite lokal (resources/js/app.js). --}}
     <script>
-        lucide.createIcons();
-        const ctx = document.getElementById('resultChart').getContext('2d');
+        document.addEventListener('DOMContentLoaded', function () {
+        if (window.lucide && window.lucide.icons) window.lucide.createIcons({ icons: window.lucide.icons });
+        const canvas = document.getElementById('resultChart');
+        if (!canvas || typeof Chart === 'undefined') return;
+        const ctx = canvas.getContext('2d');
         new Chart(ctx, {
             type: 'bar',
             data: {
@@ -188,6 +198,7 @@
                     },
                 },
             },
+        });
         });
     </script>
 </x-layouts.admin>

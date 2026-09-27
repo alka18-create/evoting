@@ -19,7 +19,7 @@
     <div class="grid grid-cols-3 gap-4 mb-6">
         <div class="bg-white rounded-xl p-4 border"><p class="text-xs text-gray-400 uppercase">Pemilihan</p><p class="text-2xl font-bold">{{ $votingEvent->elections->count() }}</p></div>
         <div class="bg-white rounded-xl p-4 border"><p class="text-xs text-gray-400 uppercase">Voters Terdaftar</p><p class="text-2xl font-bold">{{ $votingEvent->voting_event_voters_count }}</p></div>
-        <div class="bg-white rounded-xl p-4 border"><p class="text-xs text-gray-400 uppercase">Token Terbit</p><p class="text-2xl font-bold">{{ $votingEvent->votingEventVoters->whereNotNull('token')->count() }}</p></div>
+        <div class="bg-white rounded-xl p-4 border"><p class="text-xs text-gray-400 uppercase">Token Terbit</p><p class="text-2xl font-bold">{{ $votingEvent->votingEventVoters->whereNotNull('token_hash')->count() }}</p></div>
     </div>
 
     <div class="bg-white rounded-2xl shadow-sm border p-6 mb-6">
@@ -69,5 +69,4 @@
         <livewire:admin.realtime-monitor :votingEventId="$votingEvent->id" />
     </div>
 
-    <script>lucide.createIcons();</script>
 </x-layouts.admin>

@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Domain\Auditing\Services\AuditLogger;
 use App\Domain\Elections\Enums\ElectionStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\CandidateRequest;
 use App\Models\Candidate;
 use App\Models\Election;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class CandidateController extends Controller
@@ -23,6 +23,16 @@ class CandidateController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * IDOR fix: pastikan candidate benar milik election di URL.
+     */
+    private function ensureSameElection(Election $election, Candidate $candidate): void
+    {
+        if ((int) $candidate->election_id !== (int) $election->id) {
+            abort(404);
+        }
     }
 
     public function index(Election $election)
@@ -44,7 +54,7 @@ class CandidateController extends Controller
         return view('admin.candidates.create', compact('election'));
     }
 
-    public function store(Request $request, Election $election)
+    public function store(CandidateRequest $request, Election $election)
     {
         Gate::authorize('create', Candidate::class);
 
@@ -52,14 +62,8 @@ class CandidateController extends Controller
             return $redirect;
         }
 
-        // P2-04: batasi tipe + dimensi foto (cegah pixel bomb / executable).
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'candidate_number' => 'required|integer|min:1',
-            'vision' => 'nullable|string|max:5000',
-            'mission' => 'nullable|string|max:5000',
-            'photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048|dimensions:max_width=2000,max_height=2000',
-        ]);
+        // P2-04: tipe + dimensi foto divalidasi di CandidateRequest.
+        $validated = $request->validated();
 
         // Check number uniqueness within election
         if ($election->candidates()->where('candidate_number', $validated['candidate_number'])->exists()) {
@@ -70,6 +74,16 @@ class CandidateController extends Controller
         if (isset($validated['photo'])) {
             $validated['photo_path'] = $validated['photo']->store('candidates', 'public');
             unset($validated['photo']);
+        }
+
+        if (isset($validated['running_mate_photo'])) {
+            $validated['running_mate_photo_path'] = $validated['running_mate_photo']->store('candidates', 'public');
+            unset($validated['running_mate_photo']);
+        }
+
+        if (! isset($validated['running_mate_name'])) {
+            $validated['running_mate_name'] = null;
+            $validated['running_mate_photo_path'] = null;
         }
 
         $candidate = $election->candidates()->create($validated);
@@ -87,6 +101,7 @@ class CandidateController extends Controller
 
     public function show(Election $election, Candidate $candidate)
     {
+        $this->ensureSameElection($election, $candidate);
         Gate::authorize('view', $candidate);
 
         return view('admin.candidates.show', compact('election', 'candidate'));
@@ -94,6 +109,7 @@ class CandidateController extends Controller
 
     public function edit(Election $election, Candidate $candidate)
     {
+        $this->ensureSameElection($election, $candidate);
         Gate::authorize('update', $candidate);
 
         if ($redirect = $this->ensureEditable($election)) {
@@ -103,22 +119,17 @@ class CandidateController extends Controller
         return view('admin.candidates.edit', compact('election', 'candidate'));
     }
 
-    public function update(Request $request, Election $election, Candidate $candidate)
+    public function update(CandidateRequest $request, Election $election, Candidate $candidate)
     {
+        $this->ensureSameElection($election, $candidate);
         Gate::authorize('update', $candidate);
 
         if ($redirect = $this->ensureEditable($election)) {
             return $redirect;
         }
 
-        // P2-04: batasi tipe + dimensi foto (cegah pixel bomb / executable).
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'candidate_number' => 'required|integer|min:1',
-            'vision' => 'nullable|string|max:5000',
-            'mission' => 'nullable|string|max:5000',
-            'photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048|dimensions:max_width=2000,max_height=2000',
-        ]);
+        // P2-04: tipe + dimensi foto divalidasi di CandidateRequest.
+        $validated = $request->validated();
 
         // Check number uniqueness (excluding current candidate)
         if ($election->candidates()
@@ -132,6 +143,17 @@ class CandidateController extends Controller
         if (isset($validated['photo'])) {
             $validated['photo_path'] = $validated['photo']->store('candidates', 'public');
             unset($validated['photo']);
+        }
+
+        if (isset($validated['running_mate_photo'])) {
+            $validated['running_mate_photo_path'] = $validated['running_mate_photo']->store('candidates', 'public');
+            unset($validated['running_mate_photo']);
+        }
+
+        // Nama wakil dikosongkan = kembali jadi kandidat tunggal.
+        if (! isset($validated['running_mate_name'])) {
+            $validated['running_mate_name'] = null;
+            $validated['running_mate_photo_path'] = null;
         }
 
         $candidate->update($validated);
@@ -149,6 +171,7 @@ class CandidateController extends Controller
 
     public function destroy(Election $election, Candidate $candidate)
     {
+        $this->ensureSameElection($election, $candidate);
         Gate::authorize('delete', $candidate);
 
         if ($redirect = $this->ensureEditable($election)) {

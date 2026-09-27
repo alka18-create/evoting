@@ -58,7 +58,7 @@ class MfaChallengeController extends Controller
         foreach ($codes as $i => $hash) {
             if (is_string($hash) && Hash::check($code, $hash)) {
                 unset($codes[$i]);
-                $user->update(['two_factor_recovery_codes' => json_encode(array_values($codes))]);
+                $user->forceFill(['two_factor_recovery_codes' => json_encode(array_values($codes))])->save();
                 $request->session()->put('mfa_verified_at', now()->toIso8601String());
 
                 AuditLogger::log(action: 'MFA_RECOVERY_USED', resourceType: 'User', resourceId: $user->id);

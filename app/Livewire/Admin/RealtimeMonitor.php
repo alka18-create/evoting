@@ -4,7 +4,6 @@ namespace App\Livewire\Admin;
 
 use App\Models\Election;
 use App\Models\Ballot;
-use App\Models\Voter;
 use App\Models\VoterEligibility;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -133,7 +132,7 @@ class RealtimeMonitor extends Component
         }
 
         // Recent votes (last 10)
-        $this->recentVotes = Ballot::select('ballots.id', 'ballots.created_at', 'candidates.candidate_number', 'candidates.name as candidate_name', 'elections.name as election_name')
+        $this->recentVotes = Ballot::select('ballots.id', 'ballots.created_at', 'candidates.candidate_number', 'candidates.name as candidate_name', 'candidates.running_mate_name', 'elections.name as election_name')
             ->join('candidates', 'ballots.candidate_id', '=', 'candidates.id')
             ->join('elections', 'ballots.election_id', '=', 'elections.id')
             ->orderBy('ballots.created_at', 'desc')
@@ -141,7 +140,8 @@ class RealtimeMonitor extends Component
             ->get()
             ->map(fn($b) => [
                 'id' => $b->id,
-                'candidate' => 'No. ' . $b->candidate_number . ' - ' . $b->candidate_name,
+                'candidate' => 'No. ' . $b->candidate_number . ' - ' . $b->candidate_name
+                    . ($b->running_mate_name ? ' & ' . $b->running_mate_name : ''),
                 'election' => $b->election_name,
                 'time' => $b->created_at->format('H:i:s'),
             ])

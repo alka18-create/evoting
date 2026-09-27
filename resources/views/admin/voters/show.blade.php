@@ -69,14 +69,10 @@
                             <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ring-1 ring-inset {{ $statusColors[$eligibility->status] ?? 'bg-gray-50 text-gray-600' }}">
                                 {{ $eligibility->status }}
                             </span>
-                            @if ($eligibility->credential)
-                                @if ($eligibility->credential->revoked_at)
-                                    <span class="text-xs text-red-500">Credential dicabut</span>
-                                @else
-                                    <span class="text-xs text-emerald-500">Credential aktif</span>
-                                @endif
+                            @if ($eligibility->hasToken())
+                                <span class="text-xs text-emerald-500">Token aktif</span>
                             @else
-                                <span class="text-xs text-gray-400">Belum ada credential</span>
+                                <span class="text-xs text-gray-400">Belum ada token</span>
                             @endif
                         </div>
                     </div>
@@ -97,5 +93,4 @@
         </div>
     </div>
 
-    <script>lucide.createIcons();</script>
 </x-layouts.admin>

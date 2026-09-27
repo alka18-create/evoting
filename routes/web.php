@@ -54,7 +54,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'mfa', 'role:SUPER_A
     Route::post('voting-events/{votingEvent}/tokens/issue-all', [App\Http\Controllers\Admin\VotingEventTokenController::class, 'issueAll'])->name('voting-events.tokens.issue-all');
     Route::post('voting-events/{votingEvent}/tokens/assign-all', [App\Http\Controllers\Admin\VotingEventTokenController::class, 'assignAll'])->name('voting-events.tokens.assign-all');
     Route::get('voting-events/{votingEvent}/tokens/print-bulk', [App\Http\Controllers\Admin\VotingEventTokenController::class, 'printCardsBulk'])->name('voting-events.tokens.print-bulk');
+    Route::get('voting-events/{votingEvent}/tokens/cards-pdf/{file}', [App\Http\Controllers\Admin\VotingEventTokenController::class, 'downloadCardPdf'])->where('file', '[A-Za-z0-9\-\.]+')->name('voting-events.tokens.card-pdf.download');
+    Route::delete('voting-events/{votingEvent}/tokens/cards-pdf/{file}', [App\Http\Controllers\Admin\VotingEventTokenController::class, 'destroyCardPdf'])->where('file', '[A-Za-z0-9\-\.]+')->name('voting-events.tokens.card-pdf.destroy');
     Route::get('voting-events/{votingEvent}/tokens/{votingEventVoter}/print', [App\Http\Controllers\Admin\VotingEventTokenController::class, 'printCard'])->name('voting-events.tokens.print-card');
+    Route::post('voting-events/{votingEvent}/tokens/{votingEventVoter}/reissue', [App\Http\Controllers\Admin\VotingEventTokenController::class, 'reissue'])->name('voting-events.tokens.reissue');
     Route::delete('voting-events/{votingEvent}/tokens/{votingEventVoter}', [App\Http\Controllers\Admin\VotingEventTokenController::class, 'destroy'])->name('voting-events.tokens.destroy');
 
     // Election Management
@@ -96,7 +99,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'mfa', 'role:SUPER_A
     Route::get('elections/{election}/tokens', [App\Http\Controllers\Admin\TokenController::class, 'index'])->name('elections.tokens.index');
     Route::post('elections/{election}/tokens/issue', [App\Http\Controllers\Admin\TokenController::class, 'issue'])->name('elections.tokens.issue');
     Route::get('elections/{election}/tokens/print-bulk', [App\Http\Controllers\Admin\TokenController::class, 'printCardsBulk'])->name('elections.tokens.print-bulk');
+    Route::get('elections/{election}/tokens/cards-pdf/{file}', [App\Http\Controllers\Admin\TokenController::class, 'downloadCardPdf'])->where('file', '[A-Za-z0-9\-\.]+')->name('elections.tokens.card-pdf.download');
+    Route::delete('elections/{election}/tokens/cards-pdf/{file}', [App\Http\Controllers\Admin\TokenController::class, 'destroyCardPdf'])->where('file', '[A-Za-z0-9\-\.]+')->name('elections.tokens.card-pdf.destroy');
     Route::get('elections/{election}/tokens/{eligibility}/print', [App\Http\Controllers\Admin\TokenController::class, 'printCard'])->name('elections.tokens.print-card');
+    Route::post('elections/{election}/tokens/{eligibility}/reissue', [App\Http\Controllers\Admin\TokenController::class, 'reissue'])->name('elections.tokens.reissue');
     Route::delete('elections/{election}/tokens/{eligibility}', [App\Http\Controllers\Admin\TokenController::class, 'destroy'])->name('elections.tokens.destroy');
 
     // Results
@@ -146,16 +152,20 @@ Route::prefix('vote')->name('vote.')->group(function () {
     Route::post('/logout', [App\Http\Controllers\Auth\VoterLoginController::class, 'logout'])
         ->name('logout');
 
-    Route::middleware(['auth:voter', 'role:VOTER'])->group(function () {
+    Route::middleware(['auth:voter', 'voter.timeout', 'role:VOTER'])->group(function () {
         // Wizard batch (1 token untuk semua organisasi)
         Route::get('/wizard/step/{step}', [App\Http\Controllers\Voter\WizardController::class, 'step'])->name('wizard.step');
         Route::post('/wizard/step/{step}', [App\Http\Controllers\Voter\WizardController::class, 'storeStep'])->name('wizard.storeStep');
         Route::get('/wizard/review', [App\Http\Controllers\Voter\WizardController::class, 'review'])->name('wizard.review');
-        Route::post('/wizard/submit', [App\Http\Controllers\Voter\WizardController::class, 'submit'])->name('wizard.submit');
+        Route::post('/wizard/submit', [App\Http\Controllers\Voter\WizardController::class, 'submit'])
+            ->middleware('throttle:vote-submit')
+            ->name('wizard.submit');
 
         // Legacy single-election fallback
         Route::get('/', [App\Http\Controllers\Voter\VotingController::class, 'index'])->name('index');
-        Route::post('/', [App\Http\Controllers\Voter\VotingController::class, 'vote'])->name('submit');
+        Route::post('/', [App\Http\Controllers\Voter\VotingController::class, 'vote'])
+            ->middleware('throttle:vote-submit')
+            ->name('submit');
     });
 
     // Confirmation page (no auth required - voter already logged out after voting)

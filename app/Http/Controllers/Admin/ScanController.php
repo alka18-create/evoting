@@ -10,7 +10,6 @@ use App\Models\VotingEvent;
 use App\Models\Voter;
 use App\Support\VotingToken;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Crypt;
 
 class ScanController extends Controller
 {
@@ -97,7 +96,7 @@ class ScanController extends Controller
             return back()->with('success', 'Verifikasi berhasil! Pemilih "' . $voter->name . '" terdaftar di event "' . $votingEvent->name . '" — ' . $pending . '/' . $total . ' pemilihan belum dipilih. Status: ' . $statusList);
         }
 
-        // Legacy flow: election_id (dual-read hash + plain transisi + opaque v2 tanpa NIS)
+        // Legacy flow: election_id (hash-only, P0).
         $hash = VotingToken::hash((string) $request->token);
         $eligibility = null;
         if ($voter) {
@@ -105,23 +104,6 @@ class ScanController extends Controller
                 ->where('voter_id', $voter->id)
                 ->where('token_hash', $hash)
                 ->first();
-
-            if (! $eligibility) {
-                $eligibility = VoterEligibility::where('election_id', $request->election_id)
-                    ->where('voter_id', $voter->id)
-                    ->where('token', $request->token)
-                    ->first();
-
-                // Auto-upgrade plain lama ke hash+enc
-                if ($eligibility && $eligibility->token_hash === null) {
-                    $eligibility->update([
-                        'token_hash' => $hash,
-                        'token_enc' => Crypt::encryptString((string) $request->token),
-                        'token' => null,
-                    ]);
-                    $eligibility->refresh();
-                }
-            }
         } else {
             // Opaque v2: resolve pemilik token dalam election ini.
             $eligibility = VoterEligibility::where('election_id', $request->election_id)

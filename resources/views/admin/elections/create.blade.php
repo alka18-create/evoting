@@ -88,7 +88,7 @@
     </div>
 
     <script>
-        lucide.createIcons();
+        if (window.lucide && window.lucide.icons) window.lucide.createIcons({ icons: window.lucide.icons });
         const nameInput = document.getElementById('election-name');
         const eventSelect = document.getElementById('voting-event-select');
         const orgSelect = document.getElementById('organization-select');

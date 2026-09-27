@@ -42,9 +42,10 @@ beforeEach(function () {
 
 it('wizard batch all-or-nothing creates N ballots atomically', function () {
     $voter = Voter::factory()->create(['is_active' => true]);
-    VotingEventVoter::create(['voting_event_id' => $this->event->id, 'voter_id' => $voter->id, 'token' => '123456']);
+    VotingEventVoter::create(['voting_event_id' => $this->event->id, 'voter_id' => $voter->id]);
     foreach ($this->elections as $el) {
-        VoterEligibility::create(['election_id' => $el->id, 'voter_id' => $voter->id, 'status' => 'ELIGIBLE']);
+        $elig = new VoterEligibility(['election_id' => $el->id, 'voter_id' => $voter->id]);
+        $elig->forceFill(['status' => 'ELIGIBLE'])->save();
     }
 
     $selections = [];
@@ -66,9 +67,10 @@ it('wizard batch all-or-nothing creates N ballots atomically', function () {
 
 it('rollback jika salah satu election sudah VOTED', function () {
     $voter = Voter::factory()->create();
-    VotingEventVoter::create(['voting_event_id' => $this->event->id, 'voter_id' => $voter->id, 'token' => '123456']);
+    VotingEventVoter::create(['voting_event_id' => $this->event->id, 'voter_id' => $voter->id]);
     foreach ($this->elections as $el) {
-        VoterEligibility::create(['election_id' => $el->id, 'voter_id' => $voter->id, 'status' => 'ELIGIBLE']);
+        $elig = new VoterEligibility(['election_id' => $el->id, 'voter_id' => $voter->id]);
+        $elig->forceFill(['status' => 'ELIGIBLE'])->save();
     }
     // Tandai satu sudah VOTED
     VoterEligibility::where('election_id', $this->elections->first()->id)->update(['status' => 'VOTED']);
@@ -89,7 +91,7 @@ it('token unik per event (collision retry)', function () {
     $service = app(\App\Domain\Voting\Services\VotingEventService::class);
     $voters = Voter::factory()->count(5)->create();
     foreach ($voters as $v) {
-        VotingEventVoter::create(['voting_event_id' => $this->event->id, 'voter_id' => $v->id, 'token' => null]);
+        VotingEventVoter::create(['voting_event_id' => $this->event->id, 'voter_id' => $v->id]);
     }
 
     $issued = $service->generateTokens($this->event);

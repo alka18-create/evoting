@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Hash;
 
 class FixSuperAdmin extends Command
 {
@@ -24,23 +23,24 @@ class FixSuperAdmin extends Command
             $this->info("User ditemukan: {$user->username} ({$user->email})");
             $this->info("Role: " . ($user->role?->value ?? 'NULL'));
             $this->info("is_active: " . ($user->is_active ? 'true' : 'false'));
-            
-            $user->update([
+
+            $user->forceFill([
                 'password' => $password,
                 'role' => UserRole::SuperAdmin,
                 'is_active' => true,
-            ]);
-            
+            ])->save();
+
             $this->info("Password dan role telah diperbarui!");
         } else {
-            $user = User::create([
+            $user = new User;
+            $user->forceFill([
                 'name' => 'Super Admin',
                 'username' => 'superadmin',
                 'email' => 'superadmin@evoting.local',
                 'password' => $password,
                 'role' => UserRole::SuperAdmin,
                 'is_active' => true,
-            ]);
+            ])->save();
             
             $this->info("Superadmin baru dibuat!");
         }

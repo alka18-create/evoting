@@ -38,6 +38,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Batas Idle Sesi Voter (P1-02)
+    |--------------------------------------------------------------------------
+    | Menit tanpa aktivitas sebelum sesi voter (guard voter) dianggap
+    | kedaluwarsa oleh middleware voter.timeout. Terpisah dari lifetime
+    | agar sesi admin tidak ikut pendek.
+    */
+
+    'voter_timeout' => (int) env('VOTER_SESSION_LIFETIME', 30),
+
+    /*
+    |--------------------------------------------------------------------------
     | Session Encryption
     |--------------------------------------------------------------------------
     |

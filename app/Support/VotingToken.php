@@ -55,7 +55,25 @@ class VotingToken
         return $key;
     }
 
+    /**
+     * Normalisasi token dari input pengguna: buang spasi/enter dan jadikan huruf besar.
+     * Alphabet token tidak pernah mengandung huruf kecil, sehingga aman.
+     */
+    public static function normalize(string $plainToken): string
+    {
+        return strtoupper(preg_replace('/\s+/', '', $plainToken) ?? '');
+    }
+
     public static function hash(string $plainToken): string
+    {
+        return static::hashRaw(static::normalize($plainToken));
+    }
+
+    /**
+     * Hash tanpa normalisasi — hanya untuk kompatibilitas token legacy
+     * yang tersimpan apa adanya (mis. pernah diinput huruf kecil).
+     */
+    public static function hashRaw(string $plainToken): string
     {
         return hash_hmac('sha256', $plainToken, static::pepper());
     }

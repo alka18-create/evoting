@@ -28,8 +28,8 @@ class ElectionResultExport implements FromCollection, WithHeadings, WithMapping,
         $results = DB::table('ballots')
             ->join('candidates', 'ballots.candidate_id', '=', 'candidates.id')
             ->where('ballots.election_id', $this->election->id)
-            ->select('candidates.id', 'candidates.candidate_number', 'candidates.name', DB::raw('COUNT(*) as vote_count'))
-            ->groupBy('candidates.id', 'candidates.candidate_number', 'candidates.name')
+            ->select('candidates.id', 'candidates.candidate_number', 'candidates.name', 'candidates.running_mate_name', DB::raw('COUNT(*) as vote_count'))
+            ->groupBy('candidates.id', 'candidates.candidate_number', 'candidates.name', 'candidates.running_mate_name')
             ->orderBy('candidates.candidate_number')
             ->get();
 
@@ -55,9 +55,13 @@ class ElectionResultExport implements FromCollection, WithHeadings, WithMapping,
         $percentage = $totalVotes > 0 ? round(($row->vote_count / $totalVotes) * 100, 2) : 0;
 
         // P2-04: netralkan formula injection dari nama kandidat.
+        $name = $row->running_mate_name
+            ? $row->name . ' - ' . $row->running_mate_name
+            : $row->name;
+
         return ExcelSanitizer::row([
             $row->candidate_number,
-            $row->name,
+            $name,
             $row->vote_count,
             $percentage,
         ]);

@@ -3,7 +3,6 @@
 namespace App\Domain\Auditing\Services;
 
 use App\Models\AuditLog;
-use Illuminate\Http\Request;
 
 class AuditLogger
 {

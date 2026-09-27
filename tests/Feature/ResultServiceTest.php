@@ -113,7 +113,6 @@ describe('ResultService — tally()', function () {
                 'election_id' => $election->id,
                 'voter_id' => $voter->id,
                 'status' => $status,
-                'token' => (string) random_int(100000, 999999),
             ]);
         }
 

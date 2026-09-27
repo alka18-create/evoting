@@ -21,10 +21,16 @@ class VotingEventVoterFactory extends Factory
         return [
             'voting_event_id' => VotingEvent::factory(),
             'voter_id' => Voter::factory(),
-            'token' => null,
             'token_hash' => \App\Support\VotingToken::hash($plain),
-            'token_enc' => encrypt($plain),
             'expires_at' => now()->addDays(7),
         ];
+    }
+
+    public function withoutToken(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'token_hash' => null,
+            'expires_at' => null,
+        ]);
     }
 }

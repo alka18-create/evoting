@@ -17,5 +17,4 @@
         </table>
         <div class="p-4">{{ $organizations->links() }}</div>
     </div>
-    <script>lucide.createIcons();</script>
 </x-layouts.admin>

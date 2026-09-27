@@ -80,8 +80,9 @@ class ElectionController extends Controller
         Gate::authorize('view', $election);
 
         $election->load(['votingEvent', 'organization']);
+        $scheduleWarnings = self::scheduleWarnings($election);
 
-        return view('admin.elections.show', compact('election'));
+        return view('admin.elections.show', compact('election', 'scheduleWarnings'));
     }
 
     public function edit(Election $election)
@@ -179,6 +180,21 @@ class ElectionController extends Controller
             return back()->withErrors(['error' => 'Transisi tidak valid.']);
         }
 
+        // Cegah membuka pemilihan yang jadwal efektifnya belum mulai / sudah lewat.
+        // Tanpa ini, admin bisa membuka pemilihan yang pemilihnya pasti gagal vote.
+        $election->loadMissing('votingEvent');
+
+        $effectiveStarts = $election->effectiveStartsAt();
+        $effectiveEnds = $election->effectiveEndsAt();
+
+        if ($effectiveEnds && now()->gte($effectiveEnds)) {
+            return back()->withErrors(['error' => 'Tidak bisa membuka pemilihan: jadwal berakhir (' . $effectiveEnds->format('d/m/Y H:i') . ') sudah lewat. Ubah jadwal terlebih dahulu.']);
+        }
+
+        if ($effectiveStarts && now()->lt($effectiveStarts)) {
+            return back()->withErrors(['error' => 'Tidak bisa membuka pemilihan: jadwal mulai (' . $effectiveStarts->format('d/m/Y H:i') . ') belum tiba. Mundurkan jadwal mulai atau tunggu waktunya.']);
+        }
+
         $election->update([
             'status' => ElectionStatus::Open,
             'opened_at' => now(),
@@ -193,6 +209,39 @@ class ElectionController extends Controller
 
         return redirect()->route('admin.elections.index')
             ->with('success', 'Pemilihan dibuka untuk voting.');
+    }
+
+    /**
+     * Peringatan jadwal: jadwal efektif pemilihan yang berada di luar jendela
+     * event membuat pemilih gagal vote walau status OPEN. Dipakai form create/edit.
+     *
+     * @return list<string>
+     */
+    public static function scheduleWarnings(Election $election): array
+    {
+        $event = $election->votingEvent;
+
+        if (! $event || (! $event->starts_at && ! $event->ends_at)) {
+            return [];
+        }
+
+        $warnings = [];
+        $starts = $election->effectiveStartsAt();
+        $ends = $election->effectiveEndsAt();
+
+        if ($event->starts_at && $starts && $starts->lt($event->starts_at)) {
+            $warnings[] = 'Jadwal mulai pemilihan (' . $starts->format('d/m/Y H:i') . ') lebih awal dari event (' . $event->starts_at->format('d/m/Y H:i') . '). Pemilih tetap tidak bisa vote sebelum event mulai.';
+        }
+
+        if ($event->ends_at && $ends && $ends->gt($event->ends_at)) {
+            $warnings[] = 'Jadwal berakhir pemilihan (' . $ends->format('d/m/Y H:i') . ') melewati jadwal berakhir event (' . $event->ends_at->format('d/m/Y H:i') . '). Token pemilih akan kedaluwarsa lebih dulu.';
+        }
+
+        if ($ends && now()->gte($ends) && $election->status === ElectionStatus::Open) {
+            $warnings[] = 'Jadwal pemilihan sudah lewat, tetapi statusnya masih OPEN — pemilih tidak akan bisa vote.';
+        }
+
+        return $warnings;
     }
 
     public function close(Election $election)

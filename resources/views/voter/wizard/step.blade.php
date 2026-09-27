@@ -4,23 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $election->name }} - {{ $votingEvent->name }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
-        tailwind.config = {
-            theme: { extend: { colors: { primary: { 50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81' } } } }
-        }
-    </script>
-    <style>
-        .candidate-card{transition:all .3s cubic-bezier(.4,0,.2,1)}
-        .candidate-card.selected{border-color:#4f46e5;background:linear-gradient(135deg,#eef2ff,#e0e7ff);box-shadow:0 0 0 3px rgba(79,70,229,.2),0 10px 25px -5px rgba(79,70,229,.15);transform:translateY(-2px)}
-        .candidate-card:hover:not(.selected){border-color:#a5b4fc;box-shadow:0 10px 25px -5px rgba(0,0,0,.1);transform:translateY(-2px)}
-        .check-badge{opacity:0;transform:scale(.5);transition:all .3s cubic-bezier(.4,0,.2,1)}
-        .candidate-card.selected .check-badge{opacity:1;transform:scale(1)}
-        .photo-wrapper{overflow:hidden}
-        .candidate-card.selected .photo-wrapper img{transform:scale(1.05)}
-        .photo-wrapper img{transition:transform .3s ease}
-    </style>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('voter.partials.candidate-style')
 </head>
 <body class="bg-gradient-to-br from-gray-50 via-white to-primary-50 min-h-screen">
     <div class="bg-gradient-to-r from-primary-700 via-primary-600 to-primary-800 text-white">
@@ -54,31 +39,37 @@
     </div>
 
     <div class="max-w-5xl mx-auto px-4 -mt-4 sm:-mt-6 pb-12">
-        @if ($errors->any())
-            <div class="bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-2xl mb-6 flex items-start gap-3"><i data-lucide="alert-circle" class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"></i><div>@foreach ($errors->all() as $error)<p class="text-sm font-medium">{{ $error }}</p>@endforeach</div></div>
-        @endif
+        <x-form-errors />
 
         <form method="POST" action="{{ route('vote.wizard.storeStep', ['step'=>$step]) }}" id="voteForm">
             @csrf
+            @if (($votability ?? 'VOTABLE') !== 'VOTABLE')
+                @php
+                    $votabilityInfo = [
+                        'NOT_OPEN' => ['icon' => 'lock', 'title' => 'Pemilihan belum dibuka', 'desc' => 'Panitia belum membuka pemilihan ini. Silakan coba lagi nanti.'],
+                        'NOT_STARTED' => ['icon' => 'clock', 'title' => 'Pemilihan belum dimulai', 'desc' => 'Pemilihan ini akan dibuka sesuai jadwal. Kembali lagi saat waktunya tiba.'],
+                        'ENDED' => ['icon' => 'calendar-x', 'title' => 'Pemilihan sudah berakhir', 'desc' => 'Waktu pemilihan ini telah selesai dan tidak dapat diikuti lagi.'],
+                    ][$votability] ?? ['icon' => 'alert-circle', 'title' => 'Pemilihan belum bisa dipilih', 'desc' => 'Silakan hubungi panitia pemilihan.'];
+                @endphp
+                <div class="bg-white rounded-2xl border border-amber-200 bg-amber-50/50 p-8 sm:p-10 text-center mb-8">
+                    <div class="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="{{ $votabilityInfo['icon'] }}" class="w-7 h-7 text-amber-600"></i>
+                    </div>
+                    <p class="font-bold text-gray-800 text-lg">{{ $votabilityInfo['title'] }}</p>
+                    <p class="text-sm text-gray-600 mt-1 max-w-md mx-auto">{{ $votabilityInfo['desc'] }}</p>
+                </div>
+            @else
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
-                @foreach ($candidates as $candidate)
-                    <label class="candidate-card relative block bg-white border-2 {{ $selectedCandidateId==$candidate->id ? 'selected' : 'border-gray-200' }} rounded-2xl overflow-hidden cursor-pointer shadow-sm" data-id="{{ $candidate->id }}">
-                        <input type="radio" name="candidate_id" value="{{ $candidate->id }}" class="hidden" {{ $selectedCandidateId==$candidate->id ? 'checked' : '' }}>
-                        <div class="check-badge absolute top-4 right-4 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center shadow-lg z-10"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></div>
-                        <div class="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-sm z-10"><span class="text-lg font-bold text-primary-700">{{ $candidate->candidate_number }}</span></div>
-                        @if ($candidate->photo_path)
-                            <div class="photo-wrapper h-48 sm:h-56 bg-gray-100"><img src="{{ asset('storage/' . $candidate->photo_path) }}" alt="{{ $candidate->name }}" class="w-full h-full object-cover"></div>
-                        @else
-                            <div class="h-48 sm:h-56 bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center"><i data-lucide="user" class="w-16 h-16 text-primary-300"></i></div>
-                        @endif
-                        <div class="p-5">
-                            <h3 class="font-bold text-gray-800 text-lg mb-3">{{ $candidate->name }}</h3>
-                            @if ($candidate->vision)<div class="mb-3"><div class="flex items-center gap-1.5 mb-1"><i data-lucide="eye" class="w-3.5 h-3.5 text-primary-500"></i><span class="text-xs font-semibold text-primary-600 uppercase">Visi</span></div><p class="text-sm text-gray-600 leading-relaxed">{{ \Illuminate\Support\Str::limit($candidate->vision,150) }}</p></div>@endif
-                            @if ($candidate->mission)<div><div class="flex items-center gap-1.5 mb-1"><i data-lucide="target" class="w-3.5 h-3.5 text-emerald-500"></i><span class="text-xs font-semibold text-emerald-600 uppercase">Misi</span></div><p class="text-sm text-gray-600 leading-relaxed">{{ \Illuminate\Support\Str::limit($candidate->mission,150) }}</p></div>@endif
-                        </div>
-                    </label>
-                @endforeach
+                @forelse ($candidates as $candidate)
+                    @include('voter.partials.candidate-card', ['candidate' => $candidate, 'selectedCandidateId' => $selectedCandidateId])
+                @empty
+                    <div class="col-span-full bg-white rounded-2xl border-2 border-dashed border-gray-200 p-10 text-center">
+                        <p class="font-semibold text-gray-700">Belum ada kandidat</p>
+                        <p class="text-sm text-gray-500">Hubungi panitia pemilihan.</p>
+                    </div>
+                @endforelse
             </div>
+            @endif
 
             <div class="flex items-center justify-between gap-3">
                 @if($step > 1)
@@ -86,22 +77,34 @@
                 @else
                     <div></div>
                 @endif
+                @if (($votability ?? 'VOTABLE') !== 'VOTABLE')
+                    @if($step < $totalSteps)
+                        <a href="{{ route('vote.wizard.step', ['step'=>$step+1]) }}" class="inline-flex items-center gap-2 bg-gray-800 text-white font-bold py-3.5 px-10 rounded-2xl hover:bg-gray-900 shadow-lg text-sm uppercase tracking-wider">
+                            Lewati <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </a>
+                    @else
+                        <a href="{{ route('vote.wizard.review') }}" class="inline-flex items-center gap-2 bg-gray-800 text-white font-bold py-3.5 px-10 rounded-2xl hover:bg-gray-900 shadow-lg text-sm uppercase tracking-wider">
+                            Ke Review <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </a>
+                    @endif
+                @else
                 <button type="submit" id="nextBtn" {{ $selectedCandidateId ? '' : 'disabled' }} class="inline-flex items-center gap-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white font-bold py-3.5 px-10 rounded-2xl hover:from-primary-700 hover:to-primary-800 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary-500/25 text-sm uppercase tracking-wider">
                     {{ $step < $totalSteps ? 'Lanjut' : 'Lanjut ke Review' }} <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
+                @endif
             </div>
         </form>
     </div>
 
     <script>
-        lucide.createIcons();
+        if (window.lucide && window.lucide.icons) window.lucide.createIcons({ icons: window.lucide.icons });
         const cards=document.querySelectorAll('.candidate-card');
         const nextBtn=document.getElementById('nextBtn');
         cards.forEach(c=>{
             c.addEventListener('click',()=>{
                 cards.forEach(x=>{x.classList.remove('selected'); x.querySelector('input').checked=false});
                 c.classList.add('selected'); c.querySelector('input').checked=true;
-                nextBtn.disabled=false;
+                if(nextBtn) nextBtn.disabled=false;
             });
         });
     </script>

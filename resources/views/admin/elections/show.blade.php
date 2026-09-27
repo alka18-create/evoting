@@ -1,4 +1,15 @@
 <x-layouts.admin title="{{ $election->name }}">
+    @if (!empty($scheduleWarnings))
+        <div class="space-y-3 mb-6">
+            @foreach ($scheduleWarnings as $warning)
+                <div class="flex items-start gap-3 px-4 py-3 rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 text-sm">
+                    <i data-lucide="alert-triangle" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
+                    <span>{{ $warning }}</span>
+                </div>
+            @endforeach
+        </div>
+    @endif
+
     <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-3">
             @php
@@ -74,5 +85,4 @@
         @endif
     </div>
 
-    <script>lucide.createIcons();</script>
 </x-layouts.admin>

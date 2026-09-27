@@ -115,5 +115,4 @@
 
     <div class="mt-4">{{ $elections->links() }}</div>
 
-    <script>lucide.createIcons();</script>
 </x-layouts.admin>

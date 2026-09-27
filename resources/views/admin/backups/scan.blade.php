@@ -265,5 +265,4 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', startScanner);
     </script>
-    <script>lucide.createIcons();</script>
 </x-layouts.admin>

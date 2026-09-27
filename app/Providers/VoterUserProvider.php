@@ -5,7 +5,6 @@ namespace App\Providers;
 use App\Models\Voter;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Support\Facades\Hash;
 
 class VoterUserProvider implements UserProvider
 {
@@ -18,7 +17,9 @@ class VoterUserProvider implements UserProvider
 
     public function retrieveById($identifier)
     {
-        return $this->newModelQuery()->find($identifier);
+        // P0-C2: voter yang dinonaktifkan di tengah sesi langsung dianggap
+        // tamu (guard->user() = null), sehingga wizard/vote tertolak.
+        return $this->newModelQuery()->where('is_active', true)->find($identifier);
     }
 
     public function retrieveByToken($identifier, $token)

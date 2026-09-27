@@ -76,7 +76,11 @@ describe('Election Lifecycle — Status Transitions', function () {
 
     it('SUPER_ADMIN dapat membuka pemilihan dari SCHEDULED', function () {
         $admin = User::factory()->superAdmin()->create(['is_active' => true]);
-        $election = Election::factory()->scheduled()->create();
+        // Jadwal efektif sudah dimulai — guard open() menolak yang belum mulai.
+        $election = Election::factory()->scheduled()->create([
+            'starts_at' => now()->subDay(),
+            'ends_at' => now()->addDay(),
+        ]);
 
         $this->actingAs($admin);
 
@@ -94,6 +98,38 @@ describe('Election Lifecycle — Status Transitions', function () {
             'resource_type' => 'Election',
             'resource_id' => $election->id,
         ]);
+    });
+
+    it('menolak membuka pemilihan yang jadwalnya belum tiba', function () {
+        $admin = User::factory()->superAdmin()->create(['is_active' => true]);
+        $election = Election::factory()->scheduled()->create([
+            'starts_at' => now()->addWeek(),
+            'ends_at' => now()->addWeek()->addDays(2),
+        ]);
+
+        $this->actingAs($admin);
+
+        $this->post(route('admin.elections.open', $election))
+            ->assertSessionHasErrors('error');
+
+        $election->refresh();
+        $this->assertEquals(ElectionStatus::Scheduled, $election->status);
+    });
+
+    it('menolak membuka pemilihan yang jadwalnya sudah lewat', function () {
+        $admin = User::factory()->superAdmin()->create(['is_active' => true]);
+        $election = Election::factory()->scheduled()->create([
+            'starts_at' => now()->subDays(3),
+            'ends_at' => now()->subDay(),
+        ]);
+
+        $this->actingAs($admin);
+
+        $this->post(route('admin.elections.open', $election))
+            ->assertSessionHasErrors('error');
+
+        $election->refresh();
+        $this->assertEquals(ElectionStatus::Scheduled, $election->status);
     });
 
     it('menolak membuka pemilihan yang bukan SCHEDULED', function () {

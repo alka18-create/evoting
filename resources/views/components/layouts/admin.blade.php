@@ -4,20 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'Admin' }} - E-Voting</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: { 50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81',950:'#1e1b4b' },
-                    }
-                }
-            }
-        }
-    </script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         .sidebar-link { transition: all 0.2s ease; }
         .sidebar-link:hover { transform: translateX(4px); }
@@ -33,7 +20,7 @@
     <div class="flex min-h-screen" x-data="{ sidebarOpen: localStorage.getItem('sidebarOpen') !== 'false' }">
         <!-- Sidebar -->
         <aside
-            class="sidebar-transition bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white flex flex-col shadow-xl fixed top-0 left-0 h-full z-30"
+            class="sidebar-transition bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white flex flex-col shadow-xl fixed top-0 left-0 h-full z-30 w-64"
             :class="sidebarOpen ? 'w-64' : 'w-0 -translate-x-full opacity-0 overflow-hidden'"
         >
             <div class="w-64 flex flex-col h-full">
@@ -45,10 +32,10 @@
                         </div>
                         <div>
                             <h1 class="text-lg font-bold tracking-tight">E-Voting</h1>
-                            <p class="text-[10px] text-gray-400 uppercase tracking-widest">Admin Panel</p>
+                            <p class="text-[11px] text-gray-300 uppercase tracking-widest">Admin Panel</p>
                         </div>
                     </div>
-                    <button @click="sidebarOpen = false; localStorage.setItem('sidebarOpen', false)" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
+                    <button @click="sidebarOpen = false; localStorage.setItem('sidebarOpen', false)" aria-label="Tutup sidebar" class="text-gray-300 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
                         <i data-lucide="panel-left-close" class="w-4 h-4"></i>
                     </button>
                 </div>
@@ -95,7 +82,7 @@
                     </a>
 
                     <div class="pt-3 mt-3 border-t border-gray-700/50">
-                        <p class="px-3 mb-2 text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Alat</p>
+                        <p class="px-3 mb-2 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Alat</p>
                     </div>
                     <a href="{{ route('admin.scan.show') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('admin.scan.*') ? 'active text-white' : 'text-gray-300 hover:text-white hover:bg-white/5' }}">
                         <i data-lucide="scan-line" class="w-[18px] h-[18px]"></i>
@@ -117,7 +104,7 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-medium text-white truncate">{{ auth()->user()->name }}</p>
-                            <p class="text-[10px] text-gray-400 uppercase">{{ auth()->user()->role->label() }}</p>
+                            <p class="text-[11px] text-gray-300 uppercase">{{ auth()->user()->role->label() }}</p>
                         </div>
                     </a>
                     <form method="POST" action="{{ route('logout') }}">
@@ -132,7 +119,7 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 overflow-auto sidebar-transition" :class="sidebarOpen ? 'ml-64' : 'ml-0'">
+        <main class="flex-1 overflow-auto sidebar-transition ml-64" :class="sidebarOpen ? 'ml-64' : 'ml-0'">
             <!-- Top bar -->
             <div class="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-20">
                 <div class="flex items-center justify-between">
@@ -140,6 +127,7 @@
                         <button
                             @click="sidebarOpen = !sidebarOpen; localStorage.setItem('sidebarOpen', sidebarOpen)"
                             class="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-700"
+                            aria-label="Alihkan sidebar"
                             :title="sidebarOpen ? 'Sembunyikan sidebar' : 'Tampilkan sidebar'"
                         >
                             <i data-lucide="panel-left" class="w-5 h-5" x-show="!sidebarOpen"></i>
@@ -178,6 +166,15 @@
         </main>
     </div>
 
-    <script>lucide.createIcons();</script>
+    <script>
+        // Inisialisasi Lucide terpusat: refresh juga setelah Livewire morph/navigasi
+        // agar ikon di konten dinamis (toast, modal, komponen Livewire) ikut render.
+        function refreshIcons(){ if (window.lucide && window.lucide.icons) window.lucide.createIcons({ icons: window.lucide.icons }); }
+        refreshIcons();
+        document.addEventListener('DOMContentLoaded', refreshIcons);
+        document.addEventListener('livewire:navigated', refreshIcons);
+        document.addEventListener('livewire:morph-updated', refreshIcons);
+        document.addEventListener('alpine:initialized', refreshIcons);
+    </script>
 </body>
 </html>

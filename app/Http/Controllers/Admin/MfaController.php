@@ -69,11 +69,11 @@ class MfaController extends Controller
         $recoveryPlain = collect(range(1, 8))->map(fn () => strtoupper(substr(bin2hex(random_bytes(5)), 0, 5) . '-' . substr(bin2hex(random_bytes(5)), 0, 5)))->all();
         $recoveryHashed = array_map(fn ($c) => Hash::make($c), $recoveryPlain);
 
-        $user->update([
+        $user->forceFill([
             'two_factor_secret' => $secret,
             'two_factor_confirmed_at' => now(),
             'two_factor_recovery_codes' => json_encode($recoveryHashed),
-        ]);
+        ])->save();
 
         $request->session()->forget('mfa_pending_secret');
         $request->session()->put('mfa_verified_at', now()->toIso8601String());
@@ -121,11 +121,11 @@ class MfaController extends Controller
             ]);
         }
 
-        $user->update([
+        $user->forceFill([
             'two_factor_secret' => null,
             'two_factor_confirmed_at' => null,
             'two_factor_recovery_codes' => null,
-        ]);
+        ])->save();
         $request->session()->forget('mfa_verified_at');
 
         AuditLogger::log(action: 'MFA_DISABLED', resourceType: 'User', resourceId: $user->id);

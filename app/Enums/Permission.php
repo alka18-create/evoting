@@ -16,10 +16,6 @@ enum Permission: string
     case ManageVoters = 'manage_voters';
     case ViewVoters = 'view_voters';
 
-    // Credential Management
-    case ManageCredentials = 'manage_credentials';
-    case ViewCredentials = 'view_credentials';
-
     // Results
     case ViewResults = 'view_results';
     case ExportResults = 'export_results';
@@ -40,8 +36,6 @@ enum Permission: string
                 self::ViewElections->value,
                 self::ManageVoters->value,
                 self::ViewVoters->value,
-                self::ManageCredentials->value,
-                self::ViewCredentials->value,
                 self::ViewResults->value,
                 self::ExportResults->value,
                 self::ViewUsers->value,
@@ -51,8 +45,6 @@ enum Permission: string
                 self::ViewElections->value,
                 self::ManageVoters->value,
                 self::ViewVoters->value,
-                self::ManageCredentials->value,
-                self::ViewCredentials->value,
                 self::ViewResults->value,
             ],
 
@@ -69,8 +61,6 @@ enum Permission: string
             self::ViewElections => 'Lihat Pemilihan',
             self::ManageVoters => 'Kelola Pemilih',
             self::ViewVoters => 'Lihat Pemilih',
-            self::ManageCredentials => 'Kelola Kredensial',
-            self::ViewCredentials => 'Lihat Kredensial',
             self::ViewResults => 'Lihat Hasil',
             self::ExportResults => 'Export Hasil',
             self::ViewAuditLogs => 'Lihat Audit Log',

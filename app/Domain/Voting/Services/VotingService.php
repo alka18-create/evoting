@@ -3,8 +3,6 @@
 namespace App\Domain\Voting\Services;
 
 use App\Domain\Auditing\Services\AuditLogger;
-use App\Domain\Elections\Enums\ElectionStatus;
-use App\Domain\Elections\Enums\VotingEventStatus;
 use App\Models\Ballot;
 use App\Models\Candidate;
 use App\Models\Election;
@@ -15,10 +13,11 @@ use Illuminate\Support\Facades\DB;
 class VotingService
 {
     /**
-     * Single entry point untuk voting.
+     * Jalur single-election (legacy).
      *
-     * Atomic transaction: auth → resolve eligibility → verify → BEGIN → lock row →
-     * re-check eligible → create ballot (tanpa voter_id) → mark voted → COMMIT
+     * Atomic transaction: auth → resolve eligibility (milik voter ini) →
+     * verify → BEGIN → lock row → re-check eligible → create ballot
+     * (tanpa voter_id) → mark voted → COMMIT
      *
      * @throws \Exception
      */
@@ -26,15 +25,19 @@ class VotingService
         int $electionId,
         int $candidateId,
         int $eligibilityId,
+        int $voterId,
         ?string $ipAddress = null,
         ?string $userAgent = null,
     ): Ballot {
-        return DB::transaction(function () use ($electionId, $candidateId, $eligibilityId, $ipAddress, $userAgent) {
+        return DB::transaction(function () use ($electionId, $candidateId, $eligibilityId, $voterId, $ipAddress, $userAgent) {
 
-            // 1. Resolve eligibility dengan lock (FOR UPDATE)
+            // 1. Resolve eligibility dengan lock (FOR UPDATE).
+            // P0-C1: wajib cocok voter_id agar voter A tidak bisa memakai
+            // eligibility milik voter B.
             $eligibility = VoterEligibility::lockForUpdate()
                 ->where('id', $eligibilityId)
                 ->where('election_id', $electionId)
+                ->where('voter_id', $voterId)
                 ->firstOrFail();
 
             // 2. Re-check: eligibility harus ELIGIBLE (bukan VOTED atau lainnya)
@@ -42,11 +45,14 @@ class VotingService
                 throw new \Exception('Anda sudah memberikan suara untuk pemilihan ini.');
             }
 
-            // 3. Verify election status
-            $election = Election::findOrFail($electionId);
-            if ($election->status !== ElectionStatus::Open) {
-                throw new \Exception('Pemilihan belum dibuka atau sudah ditutup.');
+            // 3. Verify election status + window via gerbang terpusat (P0).
+            // Kill-switch voter nonaktif: tolak meski eligibility masih ELIGIBLE.
+            $election = Election::with('votingEvent')->findOrFail($electionId);
+            $voterActive = \App\Models\Voter::whereKey($voterId)->value('is_active');
+            if (! $voterActive) {
+                throw new \Exception('Akun pemilih dinonaktifkan. Hubungi panitia.');
             }
+            VotingGate::assertElectionVotable($election);
 
             // 4. Verify candidate belongs to election
             $candidate = Candidate::where('id', $candidateId)
@@ -66,10 +72,10 @@ class VotingService
             ]);
 
             // 6. Mark eligibility = VOTED
-            $eligibility->update([
+            $eligibility->forceFill([
                 'status' => 'VOTED',
                 'voted_at' => now(),
-            ]);
+            ])->save();
 
             // 7. Audit log (tanpa menyimpan voter→candidate relationship)
             AuditLogger::log(
@@ -109,9 +115,14 @@ class VotingService
         return DB::transaction(function () use ($votingEventId, $voterId, $selections, $ipAddress, $userAgent) {
             $votingEvent = VotingEvent::findOrFail($votingEventId);
 
-            if ($votingEvent->status !== VotingEventStatus::Open) {
-                throw new \Exception('Event pemilihan belum dibuka atau sudah ditutup.');
+            // P0-C2: tolak voter yang dinonaktifkan di tengah sesi.
+            $voterActive = \App\Models\Voter::whereKey($voterId)->value('is_active');
+            if (! $voterActive) {
+                throw new \Exception('Akun pemilih dinonaktifkan. Hubungi panitia.');
             }
+
+            // P0: validasi event (status + window) terpusat via VotingGate.
+            VotingGate::assertEventOpen($votingEvent);
 
             $ballots = [];
 
@@ -119,25 +130,14 @@ class VotingService
             $lockedEligibilities = [];
 
             foreach ($selections as $electionId => $candidateId) {
-                $election = Election::findOrFail($electionId);
+                $election = Election::with('votingEvent')->findOrFail($electionId);
 
                 if ((int) $election->voting_event_id !== (int) $votingEventId) {
                     throw new \Exception("Pemilihan {$election->name} tidak termasuk dalam event ini.");
                 }
 
-                if ($election->status !== ElectionStatus::Open) {
-                    throw new \Exception("Pemilihan {$election->name} belum dibuka atau sudah ditutup.");
-                }
-
-                // Optional: effective date check jika Election pakai inherit
-                $startsAt = $election->effectiveStartsAt();
-                $endsAt = $election->effectiveEndsAt();
-                if ($startsAt && now()->lt($startsAt)) {
-                    throw new \Exception("Pemilihan {$election->name} belum dimulai.");
-                }
-                if ($endsAt && now()->gt($endsAt)) {
-                    throw new \Exception("Pemilihan {$election->name} sudah berakhir.");
-                }
+                // P0: status + effective window via gerbang terpusat.
+                VotingGate::assertElectionVotable($election);
 
                 $eligibility = VoterEligibility::lockForUpdate()
                     ->where('election_id', $electionId)
@@ -172,10 +172,10 @@ class VotingService
                     'created_at' => now(),
                 ]);
 
-                $lockedEligibilities[$electionId]->update([
+                $lockedEligibilities[$electionId]->forceFill([
                     'status' => 'VOTED',
                     'voted_at' => now(),
-                ]);
+                ])->save();
 
                 AuditLogger::log(
                     action: 'VOTE_CAST_BATCH',

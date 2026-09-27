@@ -15,7 +15,9 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
+     * Mass assignment minimal: hanya identitas dasar.
+     * Field sensitif (role, is_active, MFA, last_login_at) wajib via
+     * forceFill() eksplisit di controller agar $request->all() tak bisa eskalasi.
      *
      * @var list<string>
      */
@@ -24,12 +26,6 @@ class User extends Authenticatable
         'username',
         'email',
         'password',
-        'role',
-        'is_active',
-        'last_login_at',
-        'two_factor_secret',
-        'two_factor_confirmed_at',
-        'two_factor_recovery_codes',
     ];
 
     /**

@@ -97,6 +97,10 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // Samakan zona waktu sesi DB dengan APP_TIMEZONE. Tanpa ini,
+            // kolom timestamptz dibaca sebagai UTC sehingga perbandingan
+            // jadwal event (starts_at/ends_at) meleset beberapa jam.
+            'timezone' => env('DB_TIMEZONE', env('APP_TIMEZONE', 'UTC')),
         ],
 
         'sqlsrv' => [

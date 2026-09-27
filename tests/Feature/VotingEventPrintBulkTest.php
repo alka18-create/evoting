@@ -59,28 +59,35 @@ it('cetak massal 8 kartu: token unik + dekripsi + render 8 kartu', function () {
         expect(strlen($t['token']))->toBeGreaterThanOrEqual(8);
     }
 
-    // DB: hash terisi, plain null, dekripsi kembali ke plain sekali tampil
+    // DB: hash terisi, hash-only tanpa salinan reversible
     $rows = VotingEventVoter::where('voting_event_id', $event->id)->with('voter')->get();
     expect($rows)->toHaveCount(8);
-    $plainByVoter = $issued->pluck('token', 'student_id');
     foreach ($rows as $row) {
-        expect($row->token)->toBeNull();
         expect($row->token_hash)->not->toBeNull();
-        expect($row->plainToken())->toBe($plainByVoter[$row->voter->student_id]);
+        expect($row->plainToken())->toBeNull();
+        expect(array_key_exists('token_enc', $row->getAttributes()))->toBeFalse();
     }
 
-    // Render bulk: 8 blok token + 8 digit × 8 kartu
+    // Render bulk hash-only: daftar status + rotasi, tanpa digit plaintext
     $this->actingAs($admin);
     $response = $this->get(route('admin.voting-events.tokens.print-bulk', $event));
     $response->assertOk();
     $html = $response->getContent();
-    // Hitung tag HTML-nya (nama class juga muncul di blok <style>).
-    expect(substr_count($html, '<div class="card-wrapper">'))->toBe(8);
-    expect(substr_count($html, '<div class="digit-box">'))->toBe(8 * 8);
+    expect($html)->toContain('Hash-only');
+    expect($html)->not->toContain('digit-box');
+    expect(substr_count($html, 'Diterbitkan'))->toBeGreaterThanOrEqual(8);
 
-    // Render satuan untuk 1 voter
+    // Print satuan hash-only: dialihkan ke rotasi
     $one = $rows->first();
-    $this->get(route('admin.voting-events.tokens.print-card', [$event, $one]))->assertOk();
+    $this->get(route('admin.voting-events.tokens.print-card', [$event, $one]))
+        ->assertRedirect();
+
+    // Rotasi menghasilkan token baru sekali tampil
+    $oldHash = $one->token_hash;
+    $reissue = $this->post(route('admin.voting-events.tokens.reissue', [$event, $one]));
+    $reissue->assertRedirect();
+    $reissue->assertSessionHas('issued_tokens');
+    expect($one->fresh()->token_hash)->not->toBe($oldHash);
 });
 
 it('verify QR v2 opaque tanpa NIS (resolve by token dalam event)', function () {

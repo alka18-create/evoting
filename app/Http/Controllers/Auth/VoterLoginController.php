@@ -55,6 +55,34 @@ class VoterLoginController extends Controller
             );
         };
 
+        // P1-03: lockout progresif — melengkapi throttle per-menit di
+        // middleware. Blokir sementara bila terlalu banyak gagal dari IP ini
+        // untuk NIS ini (brute force), tanpa memblokir siswa sah (sukses
+        // tidak dihitung).
+        $lockoutMax = (int) config('auth.voter_lockout.max_attempts', 10);
+        $lockoutMinutes = (int) config('auth.voter_lockout.decay_minutes', 15);
+        $recentFails = \App\Models\AuditLog::where('action', 'VOTER_LOGIN_FAILED')
+            ->where('ip_address', $request->ip())
+            ->where('created_at', '>=', now()->subMinutes($lockoutMinutes))
+            ->where('metadata->student_id', $studentId)
+            ->count();
+
+        if ($recentFails >= $lockoutMax) {
+            \App\Domain\Auditing\Services\AuditLogger::log(
+                action: 'VOTER_LOGIN_LOCKED',
+                resourceType: 'VotingEventVoter',
+                resourceId: 0,
+                metadata: ['voting_event_id' => $votingEventId, 'student_id' => $studentId, 'fails' => $recentFails]
+            );
+
+            $e = ValidationException::withMessages([
+                'student_id' => ["Terlalu banyak percobaan gagal. Coba lagi dalam {$lockoutMinutes} menit."],
+            ]);
+            $e->status = 429;
+
+            throw $e;
+        }
+
         // Cari voter
         /** @var Voter|null $voter */
         $voter = Voter::where('student_id', $studentId)
@@ -81,9 +109,11 @@ class VoterLoginController extends Controller
             throw ValidationException::withMessages($genericError);
         }
 
-        // Cek apakah voting event masih OPEN
+        // Cek apakah voting event masih OPEN (status + window via gerbang P0).
         $votingEvent = VotingEvent::findOrFail($votingEventId);
-        if ($votingEvent->status !== VotingEventStatus::Open) {
+        try {
+            \App\Domain\Voting\Services\VotingGate::assertEventOpen($votingEvent);
+        } catch (\Exception) {
             $logFailed('event_closed');
             throw ValidationException::withMessages($genericError);
         }
@@ -111,6 +141,8 @@ class VoterLoginController extends Controller
         // Store voting_event_id + voter_id + clear wizard selections
         $request->session()->put('voting_event_id', $votingEventId);
         $request->session()->put('voting_event_voter_id', $eventVoter->id);
+        // P1-02: penanda aktivitas awal untuk idle-timeout sesi voter.
+        $request->session()->put('voter_last_activity', now()->timestamp);
         $request->session()->forget('wizard.selections');
         $request->session()->forget('eligibility_id');
         $request->session()->forget('election_id');

@@ -9,5 +9,4 @@
             <div class="flex justify-end gap-3 pt-4 border-t"><a href="{{ route('admin.organizations.index') }}" class="px-5 py-2.5 text-sm hover:bg-gray-100 rounded-xl">Batal</a><button class="bg-primary-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold">Simpan</button></div>
         </form>
     </div>
-    <script>lucide.createIcons();</script>
 </x-layouts.admin>

@@ -22,9 +22,7 @@ class VoterEligibilityFactory extends Factory
             'election_id' => Election::factory(),
             'voter_id' => Voter::factory(),
             'status' => 'ELIGIBLE',
-            'token' => null,
             'token_hash' => \App\Support\VotingToken::hash($plain),
-            'token_enc' => encrypt($plain),
             'expires_at' => now()->addDays(7),
         ];
     }
@@ -32,9 +30,7 @@ class VoterEligibilityFactory extends Factory
     public function withoutToken(): static
     {
         return $this->state(fn (array $attributes) => [
-            'token' => null,
             'token_hash' => null,
-            'token_enc' => null,
             'expires_at' => null,
         ]);
     }

@@ -88,7 +88,26 @@ class VotingEventController extends Controller
             $validated['slug'] = $votingEvent->slug;
         }
 
+        // PENTING: token menyimpan snapshot expires_at = ends_at saat dibuat.
+        // Kalau jadwal event digeser, token lama harus ikut disinkronkan —
+        // jika tidak, semua pemilih gagal login walau event sudah dibuka.
+        $endsAtChanged = $votingEvent->ends_at?->notEqualTo(\Illuminate\Support\Carbon::parse($validated['ends_at'])) ?? true;
+
         $votingEvent->update($validated);
+
+        if ($endsAtChanged) {
+            $synced = $votingEvent->votingEventVoters()
+                ->update(['expires_at' => $votingEvent->ends_at]);
+
+            if ($synced > 0) {
+                AuditLogger::log(
+                    action: 'VOTING_EVENT_TOKENS_EXPIRY_SYNCED',
+                    resourceType: 'VotingEvent',
+                    resourceId: $votingEvent->id,
+                    metadata: ['name' => $votingEvent->name, 'tokens_synced' => $synced, 'new_ends_at' => (string) $votingEvent->ends_at]
+                );
+            }
+        }
 
         AuditLogger::log(action: 'VOTING_EVENT_UPDATED', resourceType: 'VotingEvent', resourceId: $votingEvent->id, metadata: ['name' => $votingEvent->name]);
 
@@ -137,7 +156,17 @@ class VotingEventController extends Controller
             return back()->withErrors(['error' => 'Transisi tidak valid.']);
         }
 
+        // Cegah membuka event yang jadwalnya sudah lewat — kalau dibuka,
+        // voter tidak akan pernah bisa masuk karena gerbang waktu.
+        if ($votingEvent->ends_at && now()->gt($votingEvent->ends_at)) {
+            return back()->withErrors(['error' => 'Tidak bisa membuka event: jadwal berakhir (' . $votingEvent->ends_at->format('d/m/Y H:i') . ') sudah lewat. Ubah jadwal terlebih dahulu.']);
+        }
+
         $votingEvent->update(['status' => VotingEventStatus::Open, 'opened_at' => now()]);
+
+        // Pastikan expiry token ikut jadwal event terbaru.
+        $votingEvent->votingEventVoters()
+            ->update(['expires_at' => $votingEvent->ends_at]);
 
         AuditLogger::log(action: 'VOTING_EVENT_OPENED', resourceType: 'VotingEvent', resourceId: $votingEvent->id, metadata: ['name' => $votingEvent->name]);
 

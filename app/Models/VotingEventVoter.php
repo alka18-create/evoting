@@ -11,19 +11,17 @@ class VotingEventVoter extends Model
     /** @use HasFactory<\Database\Factories\VotingEventVoterFactory> */
     use HasFactory;
 
+    /**
+     * Mass assignment minimal: hanya kunci relasi.
+     * token_hash/expires_at wajib via forceFill() internal.
+     */
     protected $fillable = [
         'voting_event_id',
         'voter_id',
-        'token',
-        'token_hash',
-        'token_enc',
-        'expires_at',
     ];
 
     protected $hidden = [
-        'token',
         'token_hash',
-        'token_enc',
     ];
 
     protected $casts = [
@@ -42,7 +40,7 @@ class VotingEventVoter extends Model
 
     public function hasToken(): bool
     {
-        return ! is_null($this->token_hash) || ! is_null($this->token);
+        return ! is_null($this->token_hash);
     }
 
     public function isExpired(): bool
@@ -51,21 +49,12 @@ class VotingEventVoter extends Model
     }
 
     /**
-     * Dekripsi ciphertext untuk cetak ulang kartu.
-     * Return null jika tidak ada salinan terenkripsi (token lama / hash-only).
+     * Hash-only: token tidak dapat dipulihkan dari DB.
+     * Selalu null — cetak ulang diganti rotasi (terbitkan ulang).
+     * Dipertahankan agar view lama tidak fatal.
      */
     public function plainToken(): ?string
     {
-        if ($this->token_enc) {
-            try {
-                return \Illuminate\Support\Facades\Crypt::decryptString($this->token_enc);
-            } catch (\Throwable) {
-                return null;
-            }
-        }
-
-        // Fallback transisi: izinkan baca plain lama sampai rotasi selesai.
-        // TODO: hapus setelah migrasi drop kolom `token`.
-        return $this->token;
+        return null;
     }
 }
