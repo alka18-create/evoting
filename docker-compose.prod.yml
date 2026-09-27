@@ -54,7 +54,8 @@ services:
     volumes:
       - .:/var/www/html
     depends_on:
-      - app
+      app:
+        condition: service_started
       redis:
         condition: service_healthy
       postgres:
