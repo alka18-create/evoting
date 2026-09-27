@@ -55,50 +55,53 @@
                     </p>
                 </div>
 
-                <!-- Visual: ilustrasi perangkat + emblem keamanan -->
+                <!-- Visual: gambar di kiri, kolom teks di kanan (lebar mengikuti isi) -->
                 <div class="my-6 animate-fade-in" style="animation-delay: 0.05s;">
-                    <div class="relative max-w-md">
-                        <img src="{{ asset('images/login-devices.webp') }}"
-                             alt="Ilustrasi laptop hasil voting, smartphone token, dan emblem keamanan E-Voting"
-                             class="w-full rounded-3xl border border-white/20 shadow-2xl shadow-black/40"
-                             loading="eager" fetchpriority="high">
-                        <div class="absolute -bottom-4 left-6 flex items-center gap-2 rounded-full bg-emerald-500/90 px-4 py-2 text-xs font-bold text-white shadow-lg">
-                            <i data-lucide="shield-check" class="w-4 h-4"></i> Aman &amp; Terenkripsi
+                    <div class="flex items-center gap-6">
+                        <div class="min-w-0 flex-1">
+                            <img src="{{ asset('images/login-devices.webp') }}"
+                                 alt="Ilustrasi laptop hasil voting, smartphone token, dan emblem keamanan E-Voting"
+                                 class="w-full rounded-3xl border border-white/20 shadow-2xl shadow-black/40"
+                                 loading="eager" fetchpriority="high">
+                        </div>
+                        <div class="w-auto shrink-0 space-y-4">
+                            <div class="inline-flex items-center gap-2 rounded-full bg-emerald-500/90 px-4 py-2 text-xs font-bold text-white shadow-lg whitespace-nowrap">
+                                <i data-lucide="shield-check" class="w-4 h-4"></i> Aman &amp; Terenkripsi
+                            </div>
+                            <div class="space-y-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 bg-emerald-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <i data-lucide="lock" class="w-4 h-4 text-emerald-300"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-sm whitespace-nowrap">Keamanan Terjamin</p>
+                                        <p class="text-cyan-100/70 text-xs whitespace-nowrap">Enkripsi end-to-end</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <i data-lucide="eye" class="w-4 h-4 text-blue-300"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-sm whitespace-nowrap">Transparansi Penuh</p>
+                                        <p class="text-cyan-100/70 text-xs whitespace-nowrap">Audit log real-time</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 bg-cyan-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <i data-lucide="zap" class="w-4 h-4 text-cyan-300"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-sm whitespace-nowrap">Hasil Real-time</p>
+                                        <p class="text-cyan-100/70 text-xs whitespace-nowrap">Pantau hasil langsung</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="space-y-4 mt-2 animate-fade-in" style="animation-delay: 0.1s;">
-                    <div class="flex items-center gap-4 bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
-                        <div class="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <i data-lucide="lock" class="w-5 h-5 text-emerald-300"></i>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-sm">Keamanan Terjamin</p>
-                            <p class="text-cyan-100/70 text-xs">Enkripsi end-to-end untuk setiap suara</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4 bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
-                        <div class="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <i data-lucide="eye" class="w-5 h-5 text-blue-300"></i>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-sm">Transparansi Penuh</p>
-                            <p class="text-cyan-100/70 text-xs">Audit log real-time untuk semua aktivitas</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4 bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
-                        <div class="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <i data-lucide="zap" class="w-5 h-5 text-cyan-300"></i>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-sm">Hasil Real-time</p>
-                            <p class="text-cyan-100/70 text-xs">Pantau partisipasi dan hasil secara langsung</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-auto pt-12 text-cyan-200/60 text-sm animate-fade-in" style="animation-delay: 0.2s;">
+                <div class="mt-auto pt-10 text-cyan-200/60 text-sm animate-fade-in" style="animation-delay: 0.2s;">
                     &copy; {{ date('Y') }} E-Voting Sekolah
                 </div>
             </div>
