@@ -58,11 +58,16 @@ class SecurityHeaders
                     "form-action 'self'",
                 ]));
             } else {
-                // Production: nonce-based; inline script/style wajib pakai nonce.
+                // Production: sementara 'unsafe-inline' — 11 view masih memakai
+                // <style>/<script> inline tanpa attribute nonce (11 view, 0 memakai
+                // cspNonce). Mode nonce aktif SEBELUM view dimigrasi = seluruh
+                // gaya/script inline diblokir (UI rusak). Migrasi nonce per-view
+                // adalah follow-up — jangan aktifkan mode nonce sebelum SEMUA
+                // view dipasangi {{ $cspNonce }}.
                 $response->headers->set('Content-Security-Policy', implode('; ', [
                     "default-src 'self'",
-                    "script-src 'self' 'nonce-{$nonce}'",
-                    "style-src 'self' 'nonce-{$nonce}' https://fonts.googleapis.com",
+                    "script-src 'self' 'unsafe-inline'",
+                    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                     "font-src 'self' https://fonts.gstatic.com",
                     "img-src 'self' data: blob:",
                     "media-src 'self' blob:",
