@@ -16,6 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->throttleApi('api');
 
+        // Deploy: aplikasi di belakang reverse proxy (aaPanel/nginx di VPS,
+        // nginx container di lokal). Tanpa ini Laravel mengira semua request
+        // HTTP sehingga asset()/redirect memakai skema http → diblokir
+        // browser sebagai mixed-content di halaman https.
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
             'permission' => \App\Http\Middleware\EnsureUserHasPermission::class,
