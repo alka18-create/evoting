@@ -18,26 +18,21 @@
 </head>
 <body class="bg-gray-50">
     <div class="flex min-h-screen" x-data="{ sidebarOpen: localStorage.getItem('sidebarOpen') !== 'false' }">
-        <!-- Sidebar -->
+        <!-- Sidebar (lebar penuh dikontrol Alpine agar tidak bentrok dengan class statis) -->
         <aside
-            class="sidebar-transition bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white flex flex-col shadow-xl fixed top-0 left-0 h-full z-30 w-64"
+            class="sidebar-transition bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white flex flex-col shadow-xl fixed top-0 left-0 h-full z-30"
             :class="sidebarOpen ? 'w-64' : 'w-0 -translate-x-full opacity-0 overflow-hidden'"
         >
             <div class="w-64 flex flex-col h-full">
-                <!-- Brand -->
-                <div class="p-5 border-b border-gray-700/50 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                            <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
-                        </div>
-                        <div>
-                            <h1 class="text-lg font-bold tracking-tight">E-Voting</h1>
-                            <p class="text-[11px] text-gray-300 uppercase tracking-widest">Admin Panel</p>
-                        </div>
+                <!-- Brand (tombol hide/show hanya ada di topbar) -->
+                <div class="p-5 border-b border-gray-700/50 flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                        <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
                     </div>
-                    <button @click="sidebarOpen = false; localStorage.setItem('sidebarOpen', false)" aria-label="Tutup sidebar" class="text-gray-300 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
-                        <i data-lucide="panel-left-close" class="w-4 h-4"></i>
-                    </button>
+                    <div>
+                        <h1 class="text-lg font-bold tracking-tight">E-Voting</h1>
+                        <p class="text-[11px] text-gray-300 uppercase tracking-widest">Admin Panel</p>
+                    </div>
                 </div>
 
                 <!-- Navigation -->
@@ -118,8 +113,8 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
-        <main class="flex-1 overflow-auto sidebar-transition ml-64" :class="sidebarOpen ? 'ml-64' : 'ml-0'">
+        <!-- Main Content (margin penuh dikontrol Alpine) -->
+        <main class="flex-1 overflow-auto sidebar-transition" :class="sidebarOpen ? 'ml-64' : 'ml-0'">
             <!-- Top bar -->
             <div class="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-20">
                 <div class="flex items-center justify-between">
