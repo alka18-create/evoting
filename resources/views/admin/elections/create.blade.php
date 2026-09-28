@@ -38,9 +38,10 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Event <span class="text-gray-400 font-normal">(opsional)</span></label>
                         <select name="voting_event_id" id="voting-event-select" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500">
-                            <option value="">-- Tanpa Event (Legacy) --</option>
+                            <option value="">-- Tanpa Event — pemilihan tunggal --</option>
                             @foreach($votingEvents as $ev)<option value="{{ $ev->id }}" data-name="{{ $ev->name }}" @selected((old('voting_event_id') ?? $preselectedEventId ?? null)==$ev->id)>{{ $ev->name }} ({{ $ev->status->label() }})</option>@endforeach
                         </select>
+                        <p class="text-xs text-gray-400 mt-1">Event hanya perlu untuk beberapa pemilihan serentak.</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Organisasi <span class="text-gray-400 font-normal">(opsional)</span></label>
@@ -53,7 +54,7 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Tanggal Mulai <span class="text-gray-400 font-normal">(kosongkan = ikut event)</span></label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Tanggal Mulai <span class="text-gray-400 font-normal">(wajib jika tanpa event)</span></label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                                 <i data-lucide="calendar" class="w-[18px] h-[18px] text-gray-400"></i>
@@ -63,7 +64,7 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Tanggal Selesai <span class="text-gray-400 font-normal">(kosongkan = ikut event)</span></label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Tanggal Selesai <span class="text-gray-400 font-normal">(wajib jika tanpa event)</span></label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                                 <i data-lucide="calendar-check" class="w-[18px] h-[18px] text-gray-400"></i>

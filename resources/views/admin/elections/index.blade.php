@@ -3,7 +3,7 @@
         <div class="flex justify-between items-center">
             <div>
                 <p class="text-sm text-gray-500">Kelola semua pemilihan — terhubung ke Event & Organisasi</p>
-                @if(request('voting_event_id'))<p class="text-xs text-primary-600 mt-1">Filter: Event = {{ $votingEvents->firstWhere('id', request('voting_event_id'))?->name ?? request('voting_event_id') }} <a href="{{ route('admin.elections.index') }}" class="underline">Reset</a></p>@endif
+                @if(request('voting_event_id'))<p class="text-xs text-primary-600 mt-1">Filter: Event = {{ request('voting_event_id')==='none' ? 'Tanpa Event' : ($votingEvents->firstWhere('id', request('voting_event_id'))?->name ?? request('voting_event_id')) }} <a href="{{ route('admin.elections.index') }}" class="underline">Reset</a></p>@endif
             </div>
             <a href="{{ route('admin.elections.create', request('voting_event_id') ? ['voting_event_id'=>request('voting_event_id')] : []) }}" class="inline-flex items-center gap-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg shadow-primary-500/25">
                 <i data-lucide="plus" class="w-4 h-4"></i>
@@ -12,7 +12,7 @@
         </div>
         <form method="GET" class="bg-white rounded-2xl shadow-sm border p-4 flex gap-3 flex-wrap">
             <label for="f-event" class="sr-only">Filter event</label>
-            <select id="f-event" name="voting_event_id" class="px-3 py-2 border rounded-xl text-sm bg-gray-50"><option value="">Semua Event</option>@foreach($votingEvents as $ev)<option value="{{ $ev->id }}" @selected(request('voting_event_id')==$ev->id)>{{ $ev->name }}</option>@endforeach</select>
+            <select id="f-event" name="voting_event_id" class="px-3 py-2 border rounded-xl text-sm bg-gray-50"><option value="">Semua Event</option><option value="none" @selected(request('voting_event_id')==='none')>Tanpa Event</option>@foreach($votingEvents as $ev)<option value="{{ $ev->id }}" @selected(request('voting_event_id')==$ev->id)>{{ $ev->name }}</option>@endforeach</select>
             <label for="f-org" class="sr-only">Filter organisasi</label>
             <select id="f-org" name="organization_id" class="px-3 py-2 border rounded-xl text-sm bg-gray-50"><option value="">Semua Organisasi</option>@foreach($organizations as $org)<option value="{{ $org->id }}" @selected(request('organization_id')==$org->id)>{{ $org->name }}</option>@endforeach</select>
             <label for="f-q" class="sr-only">Cari pemilihan</label>

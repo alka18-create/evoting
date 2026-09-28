@@ -6,9 +6,11 @@ use App\Domain\Auditing\Services\AuditLogger;
 use App\Domain\Elections\Enums\ElectionStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Election;
+use App\Models\VotingEvent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 class ElectionController extends Controller
 {
@@ -18,7 +20,9 @@ class ElectionController extends Controller
 
         $query = Election::with(['votingEvent', 'organization'])->latest();
 
-        if ($request->filled('voting_event_id')) {
+        if ($request->input('voting_event_id') === 'none') {
+            $query->whereNull('voting_event_id');
+        } elseif ($request->filled('voting_event_id')) {
             $query->where('voting_event_id', $request->voting_event_id);
         }
         if ($request->filled('organization_id')) {
@@ -55,8 +59,10 @@ class ElectionController extends Controller
             'description' => 'nullable|string',
             'voting_event_id' => 'nullable|exists:voting_events,id',
             'organization_id' => 'nullable|exists:organizations,id',
-            'starts_at' => 'nullable|date|after:now',
-            'ends_at' => 'nullable|date|after:starts_at',
+            // Mode standalone (tanpa event) wajib punya jadwal sendiri —
+            // kalau ikut event, tanggal boleh kosong (= ikut event).
+            'starts_at' => [Rule::requiredIf(fn () => blank($request->input('voting_event_id'))), 'nullable', 'date', 'after:now'],
+            'ends_at' => [Rule::requiredIf(fn () => blank($request->input('voting_event_id'))), 'nullable', 'date', 'after:starts_at'],
             'settings' => 'nullable|array',
         ]);
 
@@ -112,6 +118,43 @@ class ElectionController extends Controller
             'ends_at' => 'nullable|date|after:starts_at',
             'settings' => 'nullable|array',
         ]);
+
+        // Aturan pindah mode (standalone <-> dalam event).
+        $oldEventId = $election->voting_event_id ? (int) $election->voting_event_id : null;
+        $newEventId = ! empty($validated['voting_event_id']) ? (int) $validated['voting_event_id'] : null;
+        $validated['voting_event_id'] = $newEventId;
+
+        if ($newEventId !== $oldEventId) {
+            // Hanya boleh pindah mode saat DRAFT.
+            if ($election->status !== ElectionStatus::Draft) {
+                return back()->withErrors(['error' => 'Event hanya bisa diubah saat pemilihan masih DRAFT.']);
+            }
+
+            if ($newEventId === null) {
+                // Lepas dari event: wajib punya jadwal sendiri agar tidak yatim tanpa tanggal.
+                $starts = $validated['starts_at'] ?? $election->starts_at;
+                $ends = $validated['ends_at'] ?? $election->ends_at;
+
+                if (! $starts || ! $ends) {
+                    return back()->withErrors(['error' => 'Melepas event wajib disertai tanggal mulai & selesai sendiri.']);
+                }
+            } else {
+                // Masuk ke event: jadwal sendiri (bila diisi) harus muat dalam jadwal event.
+                $event = VotingEvent::findOrFail($newEventId);
+                $starts = $validated['starts_at'] ?? $election->starts_at;
+                $ends = $validated['ends_at'] ?? $election->ends_at;
+                $starts = $starts ? \Illuminate\Support\Carbon::parse($starts) : null;
+                $ends = $ends ? \Illuminate\Support\Carbon::parse($ends) : null;
+
+                if ($event->starts_at && $starts && $starts < $event->starts_at) {
+                    return back()->withErrors(['error' => 'Tanggal mulai pemilihan di luar jadwal event (' . $event->starts_at->format('d/m/Y H:i') . ').']);
+                }
+
+                if ($event->ends_at && $ends && $ends > $event->ends_at) {
+                    return back()->withErrors(['error' => 'Tanggal selesai pemilihan di luar jadwal event (' . $event->ends_at->format('d/m/Y H:i') . ').']);
+                }
+            }
+        }
 
         $election->update($validated);
 
