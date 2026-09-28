@@ -97,7 +97,7 @@
                         <div class="space-y-2" role="radiogroup" aria-labelledby="event-label">
                             @forelse ($votingEvents as $event)
                                 <label class="flex items-center gap-3 p-3 bg-gray-50 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-emerald-300 transition-all has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
-                                    <input type="radio" name="voting_event_id" value="{{ $event->id }}" required
+                                    <input type="radio" name="voting_event_id" value="{{ $event->id }}"
                                         {{ old('voting_event_id') == $event->id ? 'checked' : '' }}
                                         class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-gray-300">
                                     <div class="flex-1 min-w-0">
@@ -106,19 +106,41 @@
                                     </div>
                                 </label>
                             @empty
-                                <div class="text-center py-6 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                                <div class="text-center py-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
                                     <p class="text-sm text-gray-400">Tidak ada event pemilihan aktif</p>
-                                    <p class="text-xs text-gray-400 mt-1">Hubungi panitia</p>
                                 </div>
                             @endforelse
                         </div>
                     </div>
 
+                    <!-- Pemilihan Tunggal (tanpa event) -->
+                    @if ($standaloneElections->isNotEmpty())
+                        <div>
+                            <span id="election-label" class="block text-sm font-semibold text-gray-700 mb-2">Pemilihan Tunggal</span>
+                            <div class="space-y-2" role="radiogroup" aria-labelledby="election-label">
+                                @foreach ($standaloneElections as $el)
+                                    <label class="flex items-center gap-3 p-3 bg-gray-50 border-2 border-gray-100 rounded-2xl cursor-pointer hover:border-emerald-300 transition-all has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
+                                        <input type="radio" name="election_id" value="{{ $el->id }}"
+                                            {{ old('election_id') == $el->id ? 'checked' : '' }}
+                                            class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-gray-300">
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-semibold text-gray-800">{{ $el->name }}</p>
+                                            <p class="text-xs text-gray-500">{{ $el->starts_at?->format('d/m/Y') }} - {{ $el->ends_at?->format('d/m/Y') }}</p>
+                                        </div>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
                     <!-- Submit Button -->
-                    <button type="submit" @if($votingEvents->isEmpty()) disabled @endif
+                    <button type="submit" @if($votingEvents->isEmpty() && $standaloneElections->isEmpty()) disabled @endif
                         class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-4 px-6 rounded-2xl hover:from-emerald-700 hover:to-teal-700 focus:ring-4 focus:ring-emerald-500/20 transition-all shadow-lg shadow-emerald-500/25 text-sm uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed">
                         Masuk untuk Memilih
                     </button>
+                    @if($votingEvents->isEmpty() && $standaloneElections->isEmpty())
+                        <p class="text-xs text-gray-400 mt-2 text-center">Tidak ada pemilihan aktif — hubungi panitia</p>
+                    @endif
                 </form>
             </div>
 
