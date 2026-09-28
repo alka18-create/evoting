@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Domain\Auditing\Services\AuditLogger;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Models\Election;
 use App\Models\User;
+use App\Models\VotingEvent;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
@@ -125,7 +128,31 @@ class UserController extends Controller
 
         $userName = $user->name;
 
-        $user->delete();
+        // FK restrict: pengguna yang tercatat sebagai pembuat data tidak bisa
+        // dihapus (dulu melempar 500). Jelaskan + arahkan ke nonaktifkan.
+        $elections = Election::where('created_by', $user->id)->count();
+        $events = VotingEvent::where('created_by', $user->id)->count();
+
+        if ($elections > 0 || $events > 0) {
+            $parts = [];
+            if ($elections > 0) {
+                $parts[] = "{$elections} pemilihan";
+            }
+            if ($events > 0) {
+                $parts[] = "{$events} event voting";
+            }
+
+            return back()->withErrors(['error' => 'Tidak dapat menghapus "' . $userName . '" karena tercatat sebagai pembuat ' . implode(' dan ', $parts) . '. Nonaktifkan akun sebagai gantinya.']);
+        }
+
+        try {
+            $user->delete();
+        } catch (QueryException $e) {
+            // Jaring pengaman relasi lain (masa depan): jangan 500.
+            report($e);
+
+            return back()->withErrors(['error' => 'Tidak dapat menghapus "' . $userName . '" karena masih terkait data lain. Nonaktifkan akun sebagai gantinya.']);
+        }
 
         AuditLogger::log(
             action: 'USER_DELETED',
