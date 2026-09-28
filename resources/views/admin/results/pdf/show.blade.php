@@ -225,10 +225,7 @@
                         <td style="text-align: center;">{{ $index + 1 }}</td>
                         <td style="text-align: center;">{{ $result['candidate_number'] }}</td>
                         <td>
-                            {{ $result['candidate_name'] }}
-                            @if (!empty($result['running_mate_name']))
-                                <br><small>Bersama {{ $result['running_mate_name'] }}</small>
-                            @endif
+                            {{ $result['candidate_name'] }}{{ !empty($result['running_mate_name']) ? ', '.$result['running_mate_name'] : '' }}
                             @if ($index === 0)
                                 <span class="winner-badge">PEMENANG</span>
                             @endif

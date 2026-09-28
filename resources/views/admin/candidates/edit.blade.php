@@ -15,17 +15,18 @@
                 @csrf
                 @method('PUT')
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Nomor Urut</label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                <i data-lucide="hash" class="w-[18px] h-[18px] text-gray-400"></i>
-                            </div>
-                            <input type="number" name="candidate_number" id="candidate_number" value="{{ old('candidate_number', $candidate->candidate_number) }}" required min="1"
-                                class="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Nomor Urut</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <i data-lucide="hash" class="w-[18px] h-[18px] text-gray-400"></i>
                         </div>
+                        <input type="number" name="candidate_number" id="candidate_number" value="{{ old('candidate_number', $candidate->candidate_number) }}" required min="1"
+                            class="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all">
                     </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 items-start">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Nama Kandidat</label>
                         <div class="relative">
@@ -35,6 +36,19 @@
                             <input type="text" name="name" id="name" value="{{ old('name', $candidate->name) }}" required
                                 class="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all">
                         </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Foto Baru <span class="text-gray-400 font-normal">(opsional, maks 2MB)</span></label>
+                        <input type="file" name="photo" id="photo" accept="image/*"
+                            class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all">
+                        @if ($candidate->photo_path)
+                            <div class="mt-3 flex items-center gap-3">
+                                <div class="w-14 h-14 rounded-lg overflow-hidden bg-gray-100">
+                                    <img src="{{ Storage::url($candidate->photo_path) }}" alt="{{ $candidate->name }}" class="w-full h-full object-cover">
+                                </div>
+                                <p class="text-xs text-gray-500">Foto saat ini</p>
+                            </div>
+                        @endif
                     </div>
                 </div>
 
@@ -82,20 +96,6 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Misi <span class="text-gray-400 font-normal">(opsional)</span></label>
                     <textarea name="mission" id="mission" rows="3"
                         class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all resize-none">{{ old('mission', $candidate->mission) }}</textarea>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Foto Baru <span class="text-gray-400 font-normal">(opsional)</span></label>
-                    <input type="file" name="photo" id="photo" accept="image/*"
-                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all">
-                    @if ($candidate->photo_path)
-                        <div class="mt-3 flex items-center gap-3">
-                            <div class="w-20 h-20 rounded-lg overflow-hidden bg-gray-100">
-                                <img src="{{ Storage::url($candidate->photo_path) }}" alt="{{ $candidate->name }}" class="w-full h-full object-cover">
-                            </div>
-                            <p class="text-xs text-gray-500">Foto saat ini</p>
-                        </div>
-                    @endif
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">

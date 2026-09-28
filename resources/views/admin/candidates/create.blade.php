@@ -14,18 +14,19 @@
             <form method="POST" action="{{ route('admin.elections.candidates.store', $election) }}" enctype="multipart/form-data" class="space-y-5">
                 @csrf
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Nomor Urut</label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                <i data-lucide="hash" class="w-[18px] h-[18px] text-gray-400"></i>
-                            </div>
-                            <input type="number" name="candidate_number" id="candidate_number" value="{{ old('candidate_number') }}" required min="1"
-                                class="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
-                                placeholder="1">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Nomor Urut</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <i data-lucide="hash" class="w-[18px] h-[18px] text-gray-400"></i>
                         </div>
+                        <input type="number" name="candidate_number" id="candidate_number" value="{{ old('candidate_number') }}" required min="1"
+                            class="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
+                            placeholder="1">
                     </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 items-start">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">Nama Kandidat</label>
                         <div class="relative">
@@ -36,6 +37,11 @@
                                 class="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
                                 placeholder="Nama kandidat">
                         </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Foto <span class="text-gray-400 font-normal">(opsional, maks 2MB)</span></label>
+                        <input type="file" name="photo" id="photo" accept="image/*"
+                            class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all">
                     </div>
                 </div>
 
@@ -77,17 +83,6 @@
                     <textarea name="mission" id="mission" rows="3"
                         class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all resize-none"
                         placeholder="Misi kandidat...">{{ old('mission') }}</textarea>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Foto <span class="text-gray-400 font-normal">(opsional, maks 2MB)</span></label>
-                    <div class="relative flex items-center justify-center w-full h-32 bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl hover:border-primary-300 transition-colors cursor-pointer">
-                        <div class="text-center">
-                            <i data-lucide="image-plus" class="w-8 h-8 text-gray-400 mx-auto mb-2"></i>
-                            <p class="text-sm text-gray-500">Klik untuk upload foto</p>
-                        </div>
-                        <input type="file" name="photo" id="photo" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                    </div>
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
