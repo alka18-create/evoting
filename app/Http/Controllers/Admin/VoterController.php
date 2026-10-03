@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Domain\Auditing\Services\AuditLogger;
 use App\Exports\VoterListExport;
+use App\Exports\VoterTemplateExport;
 use App\Http\Controllers\Controller;
 use App\Models\Voter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Maatwebsite\Excel\Facades\Excel;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class VoterController extends Controller
 {
@@ -156,22 +158,7 @@ class VoterController extends Controller
 
     public function downloadTemplate()
     {
-        $filename = 'template_pemilih.csv';
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ];
-
-        $callback = function () {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['student_id', 'name', 'class_name']);
-            fputcsv($handle, ['12345', 'Budi Santoso', 'XII RPL 1']);
-            fputcsv($handle, ['12346', 'Siti Aminah', 'XII RPL 2']);
-            fputcsv($handle, ['12347', 'Andi Wijaya', 'XI TKJ 1']);
-            fclose($handle);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return Excel::download(new VoterTemplateExport(), 'template_pemilih.xlsx');
     }
 
     public function import(Request $request)
@@ -180,19 +167,26 @@ class VoterController extends Controller
 
         // P2-04: batasi baris agar import raksasa tidak DoS + validasi per-baris.
         $request->validate([
-            'csv_file' => 'required|file|mimes:csv,txt|max:5120',
+            'excel_file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
         ]);
 
-        $file = $request->file('csv_file');
-        $handle = fopen($file->getPathname(), 'r');
-        $header = fgetcsv($handle);
+        $file = $request->file('excel_file');
+
+        try {
+            $rows = IOFactory::load($file->getPathname())->getActiveSheet()->toArray();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors(['excel_file' => 'File tidak dapat dibaca. Gunakan template xlsx yang disediakan.']);
+        }
+
+        $header = array_shift($rows);
 
         // Validate header
         $expected = ['student_id', 'name', 'class_name'];
-        if (! is_array($header) || array_map('strtolower', array_map('trim', $header)) !== $expected) {
-            fclose($handle);
-
-            return back()->withErrors(['csv_file' => 'Format CSV tidak valid. Header harus: student_id,name,class_name']);
+        $normalizedHeader = array_map(fn ($h) => strtolower(trim((string) $h)), (array) $header);
+        if ($normalizedHeader !== $expected) {
+            return back()->withErrors(['excel_file' => 'Format file tidak valid. Header harus: student_id,name,class_name']);
         }
 
         $imported = 0;
@@ -203,28 +197,31 @@ class VoterController extends Controller
         DB::beginTransaction();
 
         try {
-            while (($row = fgetcsv($handle)) !== false) {
+            foreach ($rows as $row) {
                 $line++;
 
                 if ($line > $maxRows + 1) {
-                    fclose($handle);
                     DB::rollBack();
 
-                    return back()->withErrors(['csv_file' => "File melebihi batas {$maxRows} baris data. Pecah menjadi beberapa file."]);
+                    return back()->withErrors(['excel_file' => "File melebihi batas {$maxRows} baris data. Pecah menjadi beberapa file."]);
                 }
 
+                $row = array_values((array) $row);
                 if (count($row) !== 3) {
                     $skipped++;
                     continue;
                 }
 
-                [$studentId, $name, $className] = array_map(fn ($v) => is_string($v) ? trim($v) : $v, $row);
+                [$studentId, $name, $className] = array_map(
+                    fn ($v) => self::cellToString($v),
+                    $row
+                );
 
                 // Validasi panjang + karakter agar DB & export aman.
-                if (! is_string($studentId) || $studentId === '' || strlen($studentId) > 50
+                if ($studentId === '' || strlen($studentId) > 50
                     || ! preg_match('/^[A-Za-z0-9\-_\/\. ]+$/', $studentId)
-                    || ! is_string($name) || $name === '' || strlen($name) > 255
-                    || ! is_string($className) || $className === '' || strlen($className) > 100
+                    || $name === '' || strlen($name) > 255
+                    || $className === '' || strlen($className) > 100
                 ) {
                     $skipped++;
                     continue;
@@ -246,7 +243,6 @@ class VoterController extends Controller
                 $imported++;
             }
 
-            fclose($handle);
             DB::commit();
 
             return redirect()->route('admin.voters.index')
@@ -254,8 +250,34 @@ class VoterController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors(['csv_file' => 'Gagal import: ' . $e->getMessage()]);
+
+            return back()->withErrors(['excel_file' => 'Gagal import: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * Normalisasi sel spreadsheet ke string: angka bulat Excel (12345.0)
+     * menjadi "12345" tanpa notasi ilmiah; null menjadi ''.
+     */
+    private static function cellToString(mixed $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        if (is_bool($value)) {
+            return $value ? '1' : '0';
+        }
+
+        if (is_int($value)) {
+            return (string) $value;
+        }
+
+        if (is_float($value)) {
+            return floor($value) == $value ? sprintf('%.0f', $value) : (string) $value;
+        }
+
+        return trim((string) $value);
     }
 
     public function export()
