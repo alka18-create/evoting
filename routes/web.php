@@ -38,9 +38,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'mfa', 'role:SUPER_A
     Route::get('/', App\Http\Controllers\Admin\DashboardController::class)->name('dashboard');
 
     // Organization Management
+    Route::get('organizations/{organization}/delete-confirm', [App\Http\Controllers\Admin\OrganizationController::class, 'deleteConfirm'])->name('organizations.delete-confirm');
     Route::resource('organizations', App\Http\Controllers\Admin\OrganizationController::class)->except(['show']);
 
     // Voting Event Management (paket serentak)
+    Route::get('voting-events/{votingEvent}/delete-confirm', [App\Http\Controllers\Admin\VotingEventController::class, 'deleteConfirm'])->name('voting-events.delete-confirm');
     Route::resource('voting-events', App\Http\Controllers\Admin\VotingEventController::class);
     Route::post('voting-events/{votingEvent}/elections/bulk', [App\Http\Controllers\Admin\VotingEventController::class, 'bulkCreateElections'])->name('voting-events.elections.bulk');
     Route::post('voting-events/{votingEvent}/schedule', [App\Http\Controllers\Admin\VotingEventController::class, 'schedule'])->name('voting-events.schedule');
@@ -61,6 +63,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'mfa', 'role:SUPER_A
     Route::delete('voting-events/{votingEvent}/tokens/{votingEventVoter}', [App\Http\Controllers\Admin\VotingEventTokenController::class, 'destroy'])->name('voting-events.tokens.destroy');
 
     // Election Management
+    Route::get('elections/{election}/delete-confirm', [App\Http\Controllers\Admin\ElectionController::class, 'deleteConfirm'])->name('elections.delete-confirm');
     Route::resource('elections', App\Http\Controllers\Admin\ElectionController::class);
     Route::post('elections/{election}/schedule', [App\Http\Controllers\Admin\ElectionController::class, 'schedule'])->name('elections.schedule');
     Route::post('elections/{election}/open', [App\Http\Controllers\Admin\ElectionController::class, 'open'])->name('elections.open');
@@ -86,6 +89,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'mfa', 'role:SUPER_A
     Route::get('voters/export', [App\Http\Controllers\Admin\VoterController::class, 'export'])->name('voters.export');
     Route::get('voters/template', [App\Http\Controllers\Admin\VoterController::class, 'downloadTemplate'])->name('voters.template');
     Route::post('voters/import', [App\Http\Controllers\Admin\VoterController::class, 'import'])->name('voters.import');
+    Route::get('voters/{voter}/delete-confirm', [App\Http\Controllers\Admin\VoterController::class, 'deleteConfirm'])->name('voters.delete-confirm')->whereNumber('voter');
     Route::get('voters/{voter}', [App\Http\Controllers\Admin\VoterController::class, 'show'])->name('voters.show')->whereNumber('voter');
     Route::get('voters/{voter}/edit', [App\Http\Controllers\Admin\VoterController::class, 'edit'])->name('voters.edit')->whereNumber('voter');
     Route::put('voters/{voter}', [App\Http\Controllers\Admin\VoterController::class, 'update'])->name('voters.update')->whereNumber('voter');

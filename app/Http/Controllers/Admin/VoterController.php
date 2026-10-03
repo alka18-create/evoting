@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Domain\Auditing\Services\AuditLogger;
+use App\Domain\Maintenance\Services\DataWipeService;
 use App\Exports\VoterListExport;
 use App\Exports\VoterTemplateExport;
 use App\Http\Controllers\Controller;
 use App\Models\Voter;
+use App\Models\VoterEligibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -114,23 +116,56 @@ class VoterController extends Controller
             ->with('success', "Pemilih \"{$voter->name}\" berhasil diperbarui.");
     }
 
-    public function destroy(Voter $voter)
+    public function deleteConfirm(Voter $voter, DataWipeService $wipe)
     {
         Gate::authorize('delete', $voter);
 
-        if ($voter->eligibilities()->exists()) {
-            return back()->withErrors(['error' => 'Tidak dapat menghapus pemilih yang sudah memiliki data eligibilitas.']);
+        $impact = $wipe->impactForVoter($voter);
+
+        $warnings = [];
+        if (VoterEligibility::where('voter_id', $voter->id)->where('status', 'VOTED')->exists()) {
+            $warnings[] = 'Pemilih ini sudah memberikan suara. Suara yang masuk TETAP terhitung karena ballot anonim tanpa identitas pemilih.';
+        }
+
+        return view('admin.shared.delete-confirm', [
+            'title' => 'Hapus Pemilih',
+            'itemType' => 'pemilih',
+            'itemName' => $voter->name,
+            'impacts' => [
+                'Token / eligibilitas' => $impact['eligibilities'],
+                'Data event-voter' => $impact['event_voters'],
+            ],
+            'warnings' => $warnings,
+            'action' => route('admin.voters.destroy', $voter),
+            'cancelUrl' => route('admin.voters.index'),
+        ]);
+    }
+
+    public function destroy(Voter $voter, Request $request, DataWipeService $wipe)
+    {
+        Gate::authorize('delete', $voter);
+
+        $impact = $wipe->impactForVoter($voter);
+        $related = $impact['eligibilities'] + $impact['event_voters'];
+
+        if ($related > 0 && $request->input('confirmation') !== $voter->name) {
+            if ($request->has('confirmation')) {
+                return back()->withErrors(['error' => 'Konfirmasi tidak cocok. Ketik nama persis seperti ditampilkan.']);
+            }
+
+            return redirect()->route('admin.voters.delete-confirm', $voter);
         }
 
         $voterName = $voter->name;
+        $studentId = $voter->student_id;
 
-        $voter->delete();
+        $counts = $wipe->deleteVoter($voter);
 
         AuditLogger::log(
             action: 'VOTER_DELETED',
             resourceType: 'Voter',
             resourceId: null,
-            metadata: ['student_id' => $voter->student_id, 'name' => $voterName]
+            metadata: ['student_id' => $studentId, 'name' => $voterName, 'wiped' => $counts]
         );
 
         return redirect()->route('admin.voters.index')

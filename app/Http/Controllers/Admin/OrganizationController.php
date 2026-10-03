@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Domain\Auditing\Services\AuditLogger;
+use App\Domain\Maintenance\Services\DataWipeService;
 use App\Http\Controllers\Controller;
 use App\Models\Organization;
 use Illuminate\Http\Request;
@@ -90,22 +91,55 @@ class OrganizationController extends Controller
         return redirect()->route('admin.organizations.index')->with('success', 'Organisasi diperbarui.');
     }
 
-    public function destroy(Organization $organization)
+    public function deleteConfirm(Organization $organization, DataWipeService $wipe)
     {
         Gate::authorize('delete', $organization);
 
-        if ($organization->elections()->exists()) {
-            return back()->withErrors(['error' => 'Tidak dapat menghapus organisasi yang masih memiliki pemilihan.']);
+        $impact = $wipe->impactForOrganization($organization);
+
+        $warnings = [];
+        if ($impact['ballots'] > 0) {
+            $warnings[] = "{$impact['ballots']} suara yang sudah masuk akan ikut terhapus dan hasil berubah.";
         }
 
-        if ($organization->logo_path) {
-            Storage::disk('public')->delete($organization->logo_path);
+        return view('admin.shared.delete-confirm', [
+            'title' => 'Hapus Organisasi',
+            'itemType' => 'organisasi',
+            'itemName' => $organization->name,
+            'impacts' => [
+                'Pemilihan' => $impact['elections'],
+                'Kandidat' => $impact['candidates'],
+                'Token / eligibilitas' => $impact['eligibilities'],
+                'Suara (ballot)' => $impact['ballots'],
+                'File PDF kartu' => $impact['token_pdfs'],
+            ],
+            'warnings' => $warnings,
+            'action' => route('admin.organizations.destroy', $organization),
+            'cancelUrl' => route('admin.organizations.index'),
+        ]);
+    }
+
+    public function destroy(Organization $organization, Request $request, DataWipeService $wipe)
+    {
+        Gate::authorize('delete', $organization);
+
+        $impact = $wipe->impactForOrganization($organization);
+
+        if ($impact['elections'] > 0 && $request->input('confirmation') !== $organization->name) {
+            if ($request->has('confirmation')) {
+                return back()->withErrors(['error' => 'Konfirmasi tidak cocok. Ketik nama persis seperti ditampilkan.']);
+            }
+
+            return redirect()->route('admin.organizations.delete-confirm', $organization);
         }
 
-        $organization->delete();
+        $organizationName = $organization->name;
+        $organizationId = $organization->id;
 
-        AuditLogger::log(action: 'ORGANIZATION_DELETED', resourceType: 'Organization', resourceId: $organization->id, metadata: ['name' => $organization->name]);
+        $counts = $wipe->deleteOrganization($organization);
 
-        return redirect()->route('admin.organizations.index')->with('success', 'Organisasi dihapus.');
+        AuditLogger::log(action: 'ORGANIZATION_DELETED', resourceType: 'Organization', resourceId: $organizationId, metadata: ['name' => $organizationName, 'wiped' => $counts]);
+
+        return redirect()->route('admin.organizations.index')->with('success', "Organisasi \"{$organizationName}\" berhasil dihapus.");
     }
 }

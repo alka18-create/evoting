@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Domain\Auditing\Services\AuditLogger;
 use App\Domain\Elections\Enums\ElectionStatus;
+use App\Domain\Maintenance\Services\DataWipeService;
 use App\Http\Controllers\Controller;
 use App\Models\Election;
 use App\Models\VotingEvent;
@@ -169,29 +170,65 @@ class ElectionController extends Controller
             ->with('success', 'Pemilihan berhasil diperbarui.');
     }
 
-    public function destroy(Election $election)
+    public function deleteConfirm(Election $election, DataWipeService $wipe)
     {
         Gate::authorize('delete', $election);
 
+        $impact = $wipe->impactForElection($election);
+
+        $warnings = [];
+        if ($impact['ballots'] > 0) {
+            $warnings[] = "{$impact['ballots']} suara yang sudah masuk akan ikut terhapus dan hasil berubah.";
+        }
         if ($election->status !== ElectionStatus::Draft) {
-            return back()->withErrors(['error' => 'Hanya pemilihan DRAFT yang bisa dihapus.']);
+            $warnings[] = 'Pemilihan ini berstatus ' . $election->status->value . ' (bukan DRAFT).';
         }
 
-        if ($election->ballots()->exists() || $election->eligibilities()->exists()) {
-            return back()->withErrors(['error' => 'Tidak dapat menghapus pemilihan yang sudah memiliki data voter atau suara.']);
+        return view('admin.shared.delete-confirm', [
+            'title' => 'Hapus Pemilihan',
+            'itemType' => 'pemilihan',
+            'itemName' => $election->name,
+            'impacts' => [
+                'Kandidat' => $impact['candidates'],
+                'Token / eligibilitas' => $impact['eligibilities'],
+                'Suara (ballot)' => $impact['ballots'],
+                'File PDF kartu' => $impact['token_pdfs'],
+            ],
+            'warnings' => $warnings,
+            'action' => route('admin.elections.destroy', $election),
+            'cancelUrl' => route('admin.elections.index'),
+        ]);
+    }
+
+    public function destroy(Election $election, Request $request, DataWipeService $wipe)
+    {
+        Gate::authorize('delete', $election);
+
+        $impact = $wipe->impactForElection($election);
+        $related = $impact['candidates'] + $impact['eligibilities'] + $impact['ballots'];
+
+        if ($related > 0 && $request->input('confirmation') !== $election->name) {
+            if ($request->has('confirmation')) {
+                return back()->withErrors(['error' => 'Konfirmasi tidak cocok. Ketik nama persis seperti ditampilkan.']);
+            }
+
+            return redirect()->route('admin.elections.delete-confirm', $election);
         }
 
-        $election->delete();
+        $electionName = $election->name;
+        $electionId = $election->id;
+
+        $counts = $wipe->deleteElection($election);
 
         AuditLogger::log(
             action: 'ELECTION_DELETED',
             resourceType: 'Election',
-            resourceId: $election->id,
-            metadata: ['name' => $election->name]
+            resourceId: $electionId,
+            metadata: ['name' => $electionName, 'wiped' => $counts]
         );
 
         return redirect()->route('admin.elections.index')
-            ->with('success', 'Pemilihan berhasil dihapus.');
+            ->with('success', "Pemilihan \"{$electionName}\" berhasil dihapus.");
     }
 
     public function schedule(Election $election)

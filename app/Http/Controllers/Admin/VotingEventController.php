@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Domain\Auditing\Services\AuditLogger;
 use App\Domain\Elections\Enums\VotingEventStatus;
+use App\Domain\Maintenance\Services\DataWipeService;
 use App\Http\Controllers\Controller;
 use App\Models\VotingEvent;
 use Illuminate\Http\Request;
@@ -114,23 +115,67 @@ class VotingEventController extends Controller
         return redirect()->route('admin.voting-events.index')->with('success', 'Event diperbarui.');
     }
 
-    public function destroy(VotingEvent $votingEvent)
+    public function deleteConfirm(VotingEvent $votingEvent, DataWipeService $wipe)
     {
         Gate::authorize('delete', $votingEvent);
 
+        $impact = $wipe->impactForVotingEvent($votingEvent);
+
+        $warnings = [];
+        if ($impact['ballots'] > 0) {
+            $warnings[] = "{$impact['ballots']} suara yang sudah masuk akan ikut terhapus dan hasil berubah.";
+        }
         if ($votingEvent->status !== VotingEventStatus::Draft) {
-            return back()->withErrors(['error' => 'Hanya event DRAFT yang bisa dihapus.']);
+            $warnings[] = 'Event ini berstatus ' . $votingEvent->status->label() . ' (bukan DRAFT).';
         }
 
-        if ($votingEvent->elections()->exists() || $votingEvent->votingEventVoters()->exists()) {
-            return back()->withErrors(['error' => 'Tidak dapat menghapus event yang sudah memiliki data.']);
+        return view('admin.shared.delete-confirm', [
+            'title' => 'Hapus Event Voting',
+            'itemType' => 'event voting',
+            'itemName' => $votingEvent->name,
+            'impacts' => [
+                'Pemilihan' => $impact['elections'],
+                'Kandidat' => $impact['candidates'],
+                'Token / eligibilitas' => $impact['eligibilities'],
+                'Suara (ballot)' => $impact['ballots'],
+                'Data event-voter' => $impact['event_voters'],
+                'File PDF kartu' => $impact['token_pdfs'],
+            ],
+            'warnings' => $warnings,
+            'action' => route('admin.voting-events.destroy', $votingEvent),
+            'cancelUrl' => route('admin.voting-events.index'),
+        ]);
+    }
+
+    public function destroy(VotingEvent $votingEvent, Request $request, DataWipeService $wipe)
+    {
+        Gate::authorize('delete', $votingEvent);
+
+        $impact = $wipe->impactForVotingEvent($votingEvent);
+        $related = $impact['elections'] + $impact['event_voters'];
+
+        if ($related > 0 && $request->input('confirmation') !== $votingEvent->name) {
+            if ($request->has('confirmation')) {
+                return back()->withErrors(['error' => 'Konfirmasi tidak cocok. Ketik nama persis seperti ditampilkan.']);
+            }
+
+            return redirect()->route('admin.voting-events.delete-confirm', $votingEvent);
         }
 
-        $votingEvent->delete();
+        $eventName = $votingEvent->name;
+        $eventId = $votingEvent->id;
 
-        AuditLogger::log(action: 'VOTING_EVENT_DELETED', resourceType: 'VotingEvent', resourceId: $votingEvent->id, metadata: ['name' => $votingEvent->name]);
+        $counts = $wipe->deleteVotingEvent($votingEvent);
 
-        return redirect()->route('admin.voting-events.index')->with('success', 'Event dihapus.');
+        AuditLogger::log(
+            action: 'VOTING_EVENT_DELETED',
+            resourceType: 'VotingEvent',
+            resourceId: $eventId,
+            metadata: ['name' => $eventName, 'wiped' => $counts]
+        );
+
+        return redirect()->route('admin.voting-events.index')
+            ->with('success', "Event \"{$eventName}\" berhasil dihapus.");
     }
 
     public function schedule(VotingEvent $votingEvent)
