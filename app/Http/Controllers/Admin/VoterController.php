@@ -49,7 +49,16 @@ class VoterController extends Controller
             ->orderBy('class_name')
             ->pluck('class_name');
 
-        return view('admin.voters.index', compact('voters', 'classes'));
+        // Jumlah pemilih per kelas (untuk dropdown hapus per kelas).
+        $classCounts = Voter::query()
+            ->selectRaw('class_name, count(*) as total')
+            ->whereNotNull('class_name')
+            ->where('class_name', '!=', '')
+            ->groupBy('class_name')
+            ->pluck('total', 'class_name')
+            ->all();
+
+        return view('admin.voters.index', compact('voters', 'classes', 'classCounts'));
     }
 
     public function deleteClassConfirm(Request $request, DataWipeService $wipe)

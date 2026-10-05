@@ -7,6 +7,8 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         .sidebar-link { transition: all 0.2s ease; }
+        /* Elemen Alpine (dropdown, sidebar) disembunyikan sebelum Alpine init. */
+        [x-cloak] { display: none !important; }
         .sidebar-link:hover { transform: translateX(4px); }
         .sidebar-link.active { background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(99,102,241,0.05)); border-right: 3px solid #6366f1; }
         .stat-card { transition: all 0.3s ease; }

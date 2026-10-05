@@ -13,12 +13,26 @@
                 Import Excel
             </button>
             @can('deleteAny', App\Models\Voter::class)
-                @if (request('class_name'))
-                    <a href="{{ route('admin.voters.delete-class-confirm', ['class_name' => request('class_name')]) }}"
-                        class="inline-flex items-center gap-2 bg-red-600 border border-red-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-700 transition-all">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        Hapus Kelas "{{ request('class_name') }}"
-                    </a>
+                @if ($classes->isNotEmpty())
+                    <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                        <button type="button" @click="open = !open"
+                            class="inline-flex items-center gap-2 bg-red-600 border border-red-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-700 transition-all">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            Hapus per Kelas
+                            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                        </button>
+                        <div x-show="open" x-cloak
+                            class="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-50 max-h-80 overflow-y-auto">
+                            <p class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Pilih kelas yang dihapus</p>
+                            @foreach ($classes as $class)
+                                <a href="{{ route('admin.voters.delete-class-confirm', ['class_name' => $class]) }}"
+                                    class="flex items-center justify-between gap-2 px-3 py-2 text-sm rounded-xl text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors">
+                                    <span class="truncate">{{ $class }}</span>
+                                    <span class="text-xs text-gray-400">{{ ($classCounts[$class] ?? 0) }} pemilih</span>
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
                 @endif
             @endcan
             <a href="{{ route('admin.voters.create') }}" class="inline-flex items-center gap-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg shadow-primary-500/25">
