@@ -33,6 +33,15 @@ class VoterPolicy
         return $user->isSuperAdmin();
     }
 
+    /**
+     * Hapus massal (per kelas) — targetnya bukan satu Voter, jadi ability
+     * terpisah agar tidak salah kirim class ke delete().
+     */
+    public function deleteAny(User $user): bool
+    {
+        return $user->isSuperAdmin();
+    }
+
     public function toggleActive(User $user, Voter $voter): bool
     {
         return in_array($user->role, [UserRole::SuperAdmin, UserRole::Admin], true);

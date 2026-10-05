@@ -12,7 +12,7 @@
                 <i data-lucide="upload" class="w-4 h-4"></i>
                 Import Excel
             </button>
-            @can('delete', App\Models\Voter::class)
+            @can('deleteAny', App\Models\Voter::class)
                 @if (request('class_name'))
                     <a href="{{ route('admin.voters.delete-class-confirm', ['class_name' => request('class_name')]) }}"
                         class="inline-flex items-center gap-2 bg-red-600 border border-red-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-700 transition-all">

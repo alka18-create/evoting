@@ -54,7 +54,7 @@ class VoterController extends Controller
 
     public function deleteClassConfirm(Request $request, DataWipeService $wipe)
     {
-        Gate::authorize('delete', Voter::class);
+        Gate::authorize('deleteAny', Voter::class);
 
         $className = (string) $request->query('class_name', '');
 
@@ -93,7 +93,7 @@ class VoterController extends Controller
 
     public function destroyClass(Request $request, DataWipeService $wipe)
     {
-        Gate::authorize('delete', Voter::class);
+        Gate::authorize('deleteAny', Voter::class);
 
         $className = (string) $request->input('class_name', '');
 

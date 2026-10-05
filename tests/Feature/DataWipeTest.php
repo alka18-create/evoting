@@ -163,6 +163,6 @@ it('hapus pemilih per kelas hanya menghapus kelas tersebut', function () {
 
 it('hapus kelas kosong ditolak dengan pesan jelas', function () {
     $this->get(route('admin.voters.delete-class-confirm', ['class_name' => 'KELAS KOSONG']))
-        ->assertRedirect(route('admin.voters.index'))
+        ->assertRedirect(route('admin.voters.index', ['class_name' => 'KELAS KOSONG']))
         ->assertSessionHasErrors('error');
 });

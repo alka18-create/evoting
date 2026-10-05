@@ -42,8 +42,7 @@ it('tombol hapus tidak tampil untuk admin biasa', function () {
         ->assertOk()
         ->getContent();
 
-    // Route hapus pemilih tidak boleh muncul di markup admin biasa.
-    expect($html)->not->toContain(route('admin.voters.destroy', $this->voter));
+    expect($html)->not->toContain('aria-label="Hapus ' . $this->voter->name . '"');
 });
 
 it('tombol hapus tampil untuk superadmin', function () {
@@ -52,7 +51,7 @@ it('tombol hapus tampil untuk superadmin', function () {
         ->assertOk()
         ->getContent();
 
-    expect($html)->toContain(route('admin.voters.destroy', $this->voter));
+    expect($html)->toContain('aria-label="Hapus ' . $this->voter->name . '"');
 });
 
 it('superadmin dapat menghapus pemilih tanpa relasi', function () {
