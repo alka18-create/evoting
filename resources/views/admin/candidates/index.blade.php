@@ -65,6 +65,7 @@
                                         <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                                         Edit
                                     </a>
+                                    @can('delete', $candidate)
                                     <form method="POST" action="{{ route('admin.elections.candidates.destroy', [$election, $candidate]) }}" class="inline" onsubmit="return confirm('Yakin hapus kandidat ini?')">
                                         @csrf
                                         @method('DELETE')
@@ -73,6 +74,7 @@
                                             Hapus
                                         </button>
                                     </form>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>

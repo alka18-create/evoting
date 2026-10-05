@@ -36,8 +36,90 @@ class VoterController extends Controller
             $query->where('is_active', $request->input('status') === 'active');
         }
 
+        if ($request->filled('class_name')) {
+            $query->where('class_name', $request->input('class_name'));
+        }
+
         $voters = $query->latest()->paginate(20)->withQueryString();
-        return view('admin.voters.index', compact('voters'));
+
+        $classes = Voter::query()
+            ->whereNotNull('class_name')
+            ->where('class_name', '!=', '')
+            ->distinct()
+            ->orderBy('class_name')
+            ->pluck('class_name');
+
+        return view('admin.voters.index', compact('voters', 'classes'));
+    }
+
+    public function deleteClassConfirm(Request $request, DataWipeService $wipe)
+    {
+        Gate::authorize('delete', Voter::class);
+
+        $className = (string) $request->query('class_name', '');
+
+        if ($className === '') {
+            return redirect()->route('admin.voters.index')
+                ->withErrors(['error' => 'Pilih kelas terlebih dahulu.']);
+        }
+
+        $impact = $wipe->impactForClass($className);
+
+        if ($impact['voters'] === 0) {
+            return redirect()->route('admin.voters.index', ['class_name' => $className])
+                ->withErrors(['error' => "Tidak ada pemilih di kelas \"{$className}\"."]);
+        }
+
+        $warnings = [];
+        if ($impact['voted'] > 0) {
+            $warnings[] = "{$impact['voted']} pemilih di kelas ini sudah memberikan suara. Suara yang masuk TETAP terhitung karena ballot anonim tanpa identitas pemilih.";
+        }
+
+        return view('admin.shared.delete-confirm', [
+            'title' => 'Hapus Pemilih per Kelas',
+            'itemType' => "seluruh pemilih kelas \"{$className}\"",
+            'itemName' => $className,
+            'impacts' => [
+                'Pemilih' => $impact['voters'],
+                'Token / eligibilitas' => $impact['eligibilities'],
+                'Data event-voter' => $impact['event_voters'],
+            ],
+            'warnings' => $warnings,
+            'action' => route('admin.voters.destroy-class'),
+            'cancelUrl' => route('admin.voters.index', ['class_name' => $className]),
+            'hiddenFields' => ['class_name' => $className],
+        ]);
+    }
+
+    public function destroyClass(Request $request, DataWipeService $wipe)
+    {
+        Gate::authorize('delete', Voter::class);
+
+        $className = (string) $request->input('class_name', '');
+
+        if ($className === '') {
+            return back()->withErrors(['error' => 'Kelas tidak valid.']);
+        }
+
+        if ($request->input('confirmation') !== $className) {
+            if ($request->has('confirmation')) {
+                return back()->withErrors(['error' => 'Konfirmasi tidak cocok. Ketik nama kelas persis seperti ditampilkan.']);
+            }
+
+            return redirect()->route('admin.voters.delete-class-confirm', ['class_name' => $className]);
+        }
+
+        $counts = $wipe->deleteVotersByClass($className);
+
+        AuditLogger::log(
+            action: 'VOTERS_DELETED_BY_CLASS',
+            resourceType: 'Voter',
+            resourceId: null,
+            metadata: ['class_name' => $className, 'wiped' => $counts]
+        );
+
+        return redirect()->route('admin.voters.index')
+            ->with('success', "Kelas \"{$className}\": {$counts['voters']} pemilih berhasil dihapus.");
     }
 
     public function show(Voter $voter)

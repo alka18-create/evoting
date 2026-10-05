@@ -89,6 +89,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'mfa', 'role:SUPER_A
     Route::get('voters/export', [App\Http\Controllers\Admin\VoterController::class, 'export'])->name('voters.export');
     Route::get('voters/template', [App\Http\Controllers\Admin\VoterController::class, 'downloadTemplate'])->name('voters.template');
     Route::post('voters/import', [App\Http\Controllers\Admin\VoterController::class, 'import'])->name('voters.import');
+    Route::get('voters/delete-class-confirm', [App\Http\Controllers\Admin\VoterController::class, 'deleteClassConfirm'])->name('voters.delete-class-confirm');
+    Route::delete('voters/delete-class', [App\Http\Controllers\Admin\VoterController::class, 'destroyClass'])->name('voters.destroy-class');
     Route::get('voters/{voter}/delete-confirm', [App\Http\Controllers\Admin\VoterController::class, 'deleteConfirm'])->name('voters.delete-confirm')->whereNumber('voter');
     Route::get('voters/{voter}', [App\Http\Controllers\Admin\VoterController::class, 'show'])->name('voters.show')->whereNumber('voter');
     Route::get('voters/{voter}/edit', [App\Http\Controllers\Admin\VoterController::class, 'edit'])->name('voters.edit')->whereNumber('voter');

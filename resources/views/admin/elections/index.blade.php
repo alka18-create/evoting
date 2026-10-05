@@ -139,6 +139,7 @@
                                     <a href="{{ route('admin.elections.candidates.index', $election) }}" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:text-purple-600 hover:bg-gray-50 rounded-lg transition-colors ring-1 ring-gray-200">
                                         Kandidat
                                     </a>
+                                    @can('delete', $election)
                                     <form method="POST" action="{{ route('admin.elections.destroy', $election) }}" class="inline" onsubmit="return confirm('Hapus pemilihan ini? Bila ada data terkait, Anda akan diminta konfirmasi lanjutan.')">
                                         @csrf
                                         @method('DELETE')
@@ -146,6 +147,7 @@
                                             Hapus
                                         </button>
                                     </form>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>

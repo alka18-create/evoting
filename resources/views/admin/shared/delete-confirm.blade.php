@@ -61,6 +61,9 @@
                 <form method="POST" action="{{ $action }}" class="space-y-4">
                     @csrf
                     @method('DELETE')
+                    @foreach (($hiddenFields ?? []) as $field => $value)
+                        <input type="hidden" name="{{ $field }}" value="{{ $value }}">
+                    @endforeach
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">
                             Ketik <code class="bg-gray-100 px-1.5 py-0.5 rounded font-mono text-red-700">{{ $itemName }}</code> untuk konfirmasi

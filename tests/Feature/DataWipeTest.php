@@ -133,3 +133,36 @@ it('hapus organisasi cascade pemilihannya', function () {
     expect(Election::where('organization_id', $orgId)->count())->toBe(0);
     expect(Ballot::find($this->ballot->id))->toBeNull();
 });
+
+it('hapus pemilih per kelas hanya menghapus kelas tersebut', function () {
+    $lain = Voter::factory()->create(['is_active' => true, 'class_name' => 'XI TKJ 1']);
+    $this->voter->update(['class_name' => 'XII RPL 1']);
+
+    // Konfirmasi kelas menampilkan jumlah.
+    $this->get(route('admin.voters.delete-class-confirm', ['class_name' => 'XII RPL 1']))
+        ->assertOk()
+        ->assertSee('XII RPL 1');
+
+    // Tanpa konfirmasi → dialihkan ke halaman konfirmasi.
+    $this->delete(route('admin.voters.destroy-class'), ['class_name' => 'XII RPL 1'])
+        ->assertRedirect(route('admin.voters.delete-class-confirm', ['class_name' => 'XII RPL 1']));
+
+    // Konfirmasi salah → ditolak.
+    $this->delete(route('admin.voters.destroy-class'), ['class_name' => 'XII RPL 1', 'confirmation' => 'salah'])
+        ->assertSessionHasErrors('error');
+
+    // Konfirmasi benar → terhapus, kelas lain tetap.
+    $this->delete(route('admin.voters.destroy-class'), ['class_name' => 'XII RPL 1', 'confirmation' => 'XII RPL 1'])
+        ->assertRedirect(route('admin.voters.index'));
+
+    expect(Voter::find($this->voter->id))->toBeNull();
+    expect(Voter::find($lain->id))->not->toBeNull();
+    expect(VoterEligibility::where('voter_id', $this->voter->id)->count())->toBe(0);
+    expect(Ballot::find($this->ballot->id))->not->toBeNull();
+});
+
+it('hapus kelas kosong ditolak dengan pesan jelas', function () {
+    $this->get(route('admin.voters.delete-class-confirm', ['class_name' => 'KELAS KOSONG']))
+        ->assertRedirect(route('admin.voters.index'))
+        ->assertSessionHasErrors('error');
+});

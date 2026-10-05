@@ -9,7 +9,7 @@
             <tbody>
             @forelse($organizations as $org)
                 <tr class="border-t hover:bg-gray-50"><td class="px-4 py-3 font-medium">{{ $org->name }}</td><td class="px-4 py-3 text-gray-500">{{ $org->slug }}</td><td class="px-4 py-3 text-center"><span class="bg-primary-50 text-primary-700 px-2 py-1 rounded-lg text-xs">{{ $org->elections_count }}</span></td>
-                <td class="px-4 py-3 text-right flex justify-end gap-2"><a href="{{ route('admin.organizations.edit', $org) }}" class="text-primary-600 hover:underline">Edit</a><form method="POST" action="{{ route('admin.organizations.destroy', $org) }}" onsubmit="return confirm('Hapus organisasi?')">@csrf @method('DELETE')<button class="text-red-600 hover:underline">Hapus</button></form></td></tr>
+                <td class="px-4 py-3 text-right flex justify-end gap-2"><a href="{{ route('admin.organizations.edit', $org) }}" class="text-primary-600 hover:underline">Edit</a>@can('delete', $org)<form method="POST" action="{{ route('admin.organizations.destroy', $org) }}" onsubmit="return confirm('Hapus organisasi?')">@csrf @method('DELETE')<button class="text-red-600 hover:underline">Hapus</button></form>@endcan</td></tr>
             @empty
                 <tr><td colspan="4" class="px-4 py-8 text-center text-gray-400">Belum ada organisasi</td></tr>
             @endforelse

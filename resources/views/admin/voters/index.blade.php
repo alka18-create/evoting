@@ -10,8 +10,17 @@
             </a>
             <button id="openImportModal" class="inline-flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all">
                 <i data-lucide="upload" class="w-4 h-4"></i>
-                Import CSV
+                Import Excel
             </button>
+            @can('delete', App\Models\Voter::class)
+                @if (request('class_name'))
+                    <a href="{{ route('admin.voters.delete-class-confirm', ['class_name' => request('class_name')]) }}"
+                        class="inline-flex items-center gap-2 bg-red-600 border border-red-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-700 transition-all">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        Hapus Kelas "{{ request('class_name') }}"
+                    </a>
+                @endif
+            @endcan
             <a href="{{ route('admin.voters.create') }}" class="inline-flex items-center gap-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg shadow-primary-500/25">
                 <i data-lucide="user-plus" class="w-4 h-4"></i>
                 Tambah Pemilih
@@ -36,8 +45,15 @@
                 <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Aktif</option>
                 <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Nonaktif</option>
             </select>
+            <label for="voter-class" class="sr-only">Filter kelas</label>
+            <select id="voter-class" name="class_name" class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all">
+                <option value="">Semua Kelas</option>
+                @foreach ($classes as $class)
+                    <option value="{{ $class }}" {{ request('class_name') === $class ? 'selected' : '' }}>{{ $class }}</option>
+                @endforeach
+            </select>
             <button type="submit" class="px-4 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-all">Filter</button>
-            @if (request('search') || request('status'))
+            @if (request('search') || request('status') || request('class_name'))
                 <a href="{{ route('admin.voters.index') }}" class="px-4 py-2.5 text-gray-600 hover:bg-gray-100 rounded-xl text-sm font-medium transition-all">Reset</a>
             @endif
         </form>
@@ -85,6 +101,7 @@
                                             <i data-lucide="{{ $voter->is_active ? 'user-x' : 'user-check' }}" class="w-3.5 h-3.5"></i>
                                         </button>
                                     </form>
+                                    @can('delete', $voter)
                                     <form method="POST" action="{{ route('admin.voters.destroy', $voter) }}" class="inline" onsubmit="return confirm('Yakin hapus pemilih ini?')">
                                         @csrf
                                         @method('DELETE')
@@ -92,6 +109,7 @@
                                             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                         </button>
                                     </form>
+                                    @endcan
                                 </div>
                             </td>
                         </tr>

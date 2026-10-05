@@ -80,6 +80,18 @@ class DataWipeService
         ];
     }
 
+    public function impactForClass(string $className): array
+    {
+        $voterIds = Voter::where('class_name', $className)->pluck('id');
+
+        return [
+            'voters' => $voterIds->count(),
+            'eligibilities' => $voterIds->isEmpty() ? 0 : VoterEligibility::whereIn('voter_id', $voterIds)->count(),
+            'event_voters' => $voterIds->isEmpty() ? 0 : VotingEventVoter::whereIn('voter_id', $voterIds)->count(),
+            'voted' => $voterIds->isEmpty() ? 0 : VoterEligibility::whereIn('voter_id', $voterIds)->where('status', 'VOTED')->count(),
+        ];
+    }
+
     // ------------------------------------------------------------------
     // Destruktif.
     // ------------------------------------------------------------------
@@ -95,6 +107,26 @@ class DataWipeService
 
             $voter->delete();
             $counts['voters'] = 1;
+
+            return $counts;
+        });
+    }
+
+    /**
+     * Hapus seluruh pemilih pada satu kelas. Ballot tetap anonim/utuh.
+     *
+     * @return array<string, int>
+     */
+    public function deleteVotersByClass(string $className): array
+    {
+        return DB::transaction(function () use ($className) {
+            $voterIds = Voter::where('class_name', $className)->pluck('id');
+
+            $counts = [
+                'eligibilities' => $voterIds->isEmpty() ? 0 : VoterEligibility::whereIn('voter_id', $voterIds)->delete(),
+                'event_voters' => $voterIds->isEmpty() ? 0 : VotingEventVoter::whereIn('voter_id', $voterIds)->delete(),
+                'voters' => Voter::whereIn('id', $voterIds)->delete(),
+            ];
 
             return $counts;
         });

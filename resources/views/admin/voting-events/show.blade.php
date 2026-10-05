@@ -7,10 +7,12 @@
             @if($votingEvent->status->value=='OPEN')<form method="POST" action="{{ route('admin.voting-events.close',$votingEvent) }}">@csrf<button class="bg-amber-600 text-white px-4 py-2 rounded-xl text-sm">Tutup</button></form>@endif
             @if($votingEvent->status->value=='CLOSED')<form method="POST" action="{{ route('admin.voting-events.archive',$votingEvent) }}">@csrf<button class="bg-gray-600 text-white px-4 py-2 rounded-xl text-sm">Arsipkan</button></form>@endif
             @if($votingEvent->status->value=='DRAFT')
+                @can('delete', $votingEvent)
                 <form method="POST" action="{{ route('admin.voting-events.destroy', $votingEvent) }}" onsubmit="return confirm('Hapus event ini? Hanya event DRAFT tanpa data yang bisa dihapus.')">
                     @csrf @method('DELETE')
                     <button class="bg-red-50 text-red-700 border border-red-200 px-4 py-2 rounded-xl text-sm hover:bg-red-100">Hapus Event</button>
                 </form>
+                @endcan
             @endif
             <a href="{{ route('admin.voting-events.index') }}" class="px-4 py-2 rounded-xl text-sm bg-gray-100 hover:bg-gray-200">Kembali</a>
         </div>
