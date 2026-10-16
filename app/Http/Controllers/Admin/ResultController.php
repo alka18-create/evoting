@@ -10,6 +10,7 @@ use App\Models\Election;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 
 class ResultController extends Controller
 {
@@ -57,7 +58,7 @@ class ResultController extends Controller
 
         $results = $resultService->tally($election);
 
-        $filename = "hasil-{$election->name}-" . now()->format('Y-m-d') . '.csv';
+        $filename = $this->resultFilename($election, 'csv');
         $headers = [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
@@ -114,7 +115,7 @@ class ResultController extends Controller
             return back()->withErrors(['error' => 'Hasil hanya dapat diekspor setelah pemilihan ditutup.']);
         }
 
-        $filename = "hasil-{$election->name}-" . now()->format('Y-m-d') . '.xlsx';
+        $filename = $this->resultFilename($election, 'xlsx');
         
         return Excel::download(new ElectionResultExport($election), $filename);
     }
@@ -127,12 +128,33 @@ class ResultController extends Controller
             return back()->withErrors(['error' => 'Hasil hanya dapat diekspor setelah pemilihan ditutup.']);
         }
 
-        $results = $resultService->tally($election);
-        
-        $pdf = PDF::loadView('admin.results.pdf.show', compact('election', 'results'));
-        
-        $filename = "hasil-{$election->name}-" . now()->format('Y-m-d') . '.pdf';
-        
-        return $pdf->download($filename);
+        try {
+            $results = $resultService->tally($election);
+
+            $pdf = PDF::loadView('admin.results.pdf.show', compact('election', 'results'));
+
+            $filename = $this->resultFilename($election, 'pdf');
+
+            return $pdf->download($filename);
+        } catch (\Throwable $e) {
+            // Jangan biarkan halaman 500 tanpa jejak: catat sebab asli
+            // (mis. binding DomPDF tidak terdaftar) lalu beri umpan balik.
+            report($e);
+
+            return back()->withErrors([
+                'error' => 'Gagal membuat PDF hasil. Silakan hubungi administrator.',
+            ]);
+        }
+    }
+
+    /**
+     * Nama file unduhan yang aman: nama pemilihan bisa mengandung "/" atau "\"
+     * yang ditolak Symfony HeaderUtils (penyebab 500 pada export).
+     */
+    private function resultFilename(Election $election, string $extension): string
+    {
+        $name = Str::slug($election->name) ?: 'pemilihan';
+
+        return "hasil-{$name}-" . now()->format('Y-m-d') . ".{$extension}";
     }
 }
