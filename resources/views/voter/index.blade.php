@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vote - {{ $election->name }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <x-favicon />
     @include('voter.partials.candidate-style')
 </head>
 <body class="bg-gradient-to-br from-gray-50 via-white to-primary-50 min-h-screen">

@@ -8,6 +8,7 @@
     <title>{{ config('app.name', 'E-Voting') }} — @yield('title', 'Dashboard')</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <x-favicon />
     @livewireStyles
 </head>
 <body class="h-full bg-gray-50 font-sans text-gray-900 antialiased">

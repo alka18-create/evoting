@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ config('app.name', 'E-Voting Sekolah') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <x-favicon />
     {{-- Font dimuat non-blocking (media=print): jaringan yang memblokir Google Fonts
          tidak menunda first paint; fallback system font tetap rapi. --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">

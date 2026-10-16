@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Review Pilihan - {{ $votingEvent->name }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <x-favicon />
 </head>
 <body class="bg-gradient-to-br from-gray-50 via-white to-primary-50 min-h-screen">
     <div class="bg-gradient-to-r from-primary-700 via-primary-600 to-primary-800 text-white">
